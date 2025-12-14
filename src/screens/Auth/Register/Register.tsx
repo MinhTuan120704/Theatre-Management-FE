@@ -1,0 +1,2 @@
+// Giao diện đăng ký gồm: nút tabs để chuyển sang mục đăng nhập, các trường nhập liệu như Họ và tên, số điện thoại, email, mật khẩu, xác nhận mật khẩu; nút đăng ký
+// Khi nhấn nút đăng ký, hãy validate nôi dung các trường trước khi request api

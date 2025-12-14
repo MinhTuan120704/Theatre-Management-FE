@@ -1,0 +1,1 @@
+// Một hàng thông tin vé gồm: Mã đơn, tên phim, ngày giờ chiếu, tổng tiền, nút tương tác (hủy vé)

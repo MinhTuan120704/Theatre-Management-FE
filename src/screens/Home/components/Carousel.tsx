@@ -1,0 +1,1 @@
+// Carousel gồm các banner movie với id của movie tương ứng, tự động scroll sau vài giây, có thể ấn vào để chuyển sang trang MovieDetailAndBooking tương ứng

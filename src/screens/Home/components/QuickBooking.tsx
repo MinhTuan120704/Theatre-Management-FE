@@ -1,0 +1,1 @@
+// Là một thanh đặt vé nhanh gồm: chọn các rạp, chọn phim có lịch chiếu sẵn sàng ở rạp đã chọn, chọn ngày chiếu có sẵn ở phim và rạp đã chọn, chọn suất chiếu ở rạp + phim + ngày đã chọn, nút đặt vé sẽ chuyển sang màn hình đặt vé với các thông tin đã chọn.

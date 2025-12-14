@@ -1,0 +1,1 @@
+// Thẻ phim gồm: Tiêu đề phim ở trên cùng, ảnh poster của phim, 1 link xem trailer của phim được đặt cạnh nút đặt vé (với id phim tương ứng và chuyển sang màn hình MovieDetailAndBooking và scroll xuống phần Booking)

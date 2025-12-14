@@ -1,0 +1,1 @@
+// gồm nút đánh giá, nút bình luận

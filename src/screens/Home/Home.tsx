@@ -1,0 +1,1 @@
+// Gồm các component sau: Carousel, QuickBooking, một list các MovieCard được sắp xếp theo chiều ngang và có thể swipe theo chiều ngang để xem thêm.

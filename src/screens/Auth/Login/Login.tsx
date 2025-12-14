@@ -1,0 +1,2 @@
+// Giao diện đăng nhập gồm: Nút tabs để có thể chuyển sang phần đăng ký, Một trường cho phép nhập Tài khoản, email hoặc số điện thoại; một trường cho phép nhập mật khẩu (có nút toggle visibility), một nút lưu mật khẩu khi đăng nhập, một link để chuyển sang phần forgotpassword, nút đăng nhập.
+// Khi ấn nút đăng nhập, hãy validate các trường trước khi gửi request api

@@ -1,0 +1,1 @@
+// Một Grid gồm các TicketInfoRow để render và lazyloading, có các cột: Mã đơn, phim, Ngày, Tổng tiền, [Cột trống chứa các phím tương tác]
