@@ -29,3 +29,7 @@ install-state.gz
 .yarnrc.yml
 .yarn 
 .vscode
+*.png
+
+.txt
+*.json

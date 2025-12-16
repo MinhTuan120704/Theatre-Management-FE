@@ -1,0 +1,1 @@
+// Gồm các thông tin đang đặt vé ở trên, có nút đặt vé và bộ đếm thời gian giữ vé
