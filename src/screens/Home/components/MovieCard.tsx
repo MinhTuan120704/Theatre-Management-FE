@@ -2,14 +2,9 @@
 
 import { useNavigate } from "react-router-dom";
 import { Play, Ticket } from "lucide-react";
+import type { MovieCard as MovieCardType } from "../../../types";
 
-interface MovieCardProps {
-  id: number;
-  title: string;
-  poster: string;
-  trailerUrl?: string;
-  rating?: number;
-}
+type MovieCardProps = MovieCardType;
 
 const MovieCard = ({
   id,
