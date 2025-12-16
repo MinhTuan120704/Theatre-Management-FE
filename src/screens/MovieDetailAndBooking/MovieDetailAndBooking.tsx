@@ -1,3 +1,22 @@
-// Màn hình chi tiết thông tin và đặt vé nhanh:
-// Nửa trên gồm các component trong Movie Detail được sắp xếp theo layout dọc: Movie Info, Rating, Bình luận.
-// Nửa dưới gồm các component trong Booking: MovieShowtimes (lấy theo id của phim), TheaterList (lấy theo id phim), SeatList (theo đúng id của rạp và giờ chiếu được chọn ở TheaterList), FoodDrinkSelection, BookingSummaryPanel (tổng hợp các trường cần thiết sau khi chọn từ các component trên).
+import { useParams } from "react-router-dom";
+
+const MovieDetailAndBooking = () => {
+  const { movieId } = useParams();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-800 py-12 px-4">
+      <div className="container mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-8">
+          Chi tiết phim #{movieId}
+        </h1>
+        <div className="bg-white rounded-lg p-8">
+          <p className="text-gray-600">
+            Movie Detail & Booking page - Coming soon...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MovieDetailAndBooking;

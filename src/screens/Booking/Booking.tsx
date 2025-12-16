@@ -1,5 +1,20 @@
-// Sau khi đã chọn các thông tin như rạp, phim, suất chiếu, chỗ ngồi, người dùng sẽ được chuyển đến màn hình này để hoàn tất các thông tin còn lại để đặt vé:
-// Bên trên sẽ là thanh Progress để người dùng biết mình đã đến bước nào
-// Main content bên phải: MovieTicketInfo - Thông tin về vé mà người dùng đang đặt, được lấy từ các trường trước đó
-// Main content bên trái - Bước 1 - MovieBookerInfo: Nhập thông tin khách hàng
-// Main content bên trái - Bước 2 - PaymentInfo : Người dùng chọn phương thức thanh toán phù hợp và chuyển đến cổng thanh toán.
+import { useParams } from "react-router-dom";
+
+const Booking = () => {
+  const { showtimeId } = useParams();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-800 py-12 px-4">
+      <div className="container mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-8">
+          Đặt vé - Suất chiếu #{showtimeId}
+        </h1>
+        <div className="bg-white rounded-lg p-8">
+          <p className="text-gray-600">Booking page - Coming soon...</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Booking;
