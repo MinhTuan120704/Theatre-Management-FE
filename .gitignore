@@ -32,3 +32,4 @@ install-state.gz
 *.png
 
 .txt
+*.json
