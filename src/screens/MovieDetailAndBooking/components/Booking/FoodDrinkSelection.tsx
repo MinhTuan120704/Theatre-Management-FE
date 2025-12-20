@@ -2,10 +2,10 @@
 // Mỗi card gồm: bên trái là ảnh của món; bên phải là tên, giá tiền; ớ dưới là nút chọn số lượng
 
 import { Minus, Plus } from "lucide-react";
-import type { FoodDrink } from "../../../../types";
+import type { ProductResponseDto } from "../../../../types";
 
 interface FoodDrinkSelectionProps {
-  items: FoodDrink[];
+  items: ProductResponseDto[];
   selectedItems: Record<number, number>;
   onUpdateQuantity: (itemId: number, quantity: number) => void;
 }

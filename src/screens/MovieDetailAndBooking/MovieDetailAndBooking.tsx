@@ -12,35 +12,47 @@ import TheaterList from "./components/Booking/TheaterList";
 import SeatList from "./components/Booking/SeatList";
 import FoodDrinkSelection from "./components/Booking/FoodDrinkSelection";
 import BookingSummaryPanel from "./components/Booking/BookingSummaryPanel";
+import type {
+  MovieResponseDto,
+  ReviewResponseDto,
+  RoomResponseDto,
+  SeatResponseDto,
+  ProductResponseDto,
+} from "../../types";
 
 // Mock data - TODO: Replace with API
-const mockMovie = {
+const mockMovie: MovieResponseDto = {
   id: 1,
   title: "Lọ Lem Chơi Ngại",
-  poster:
-    "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
-  genre: "Kinh dị",
-  duration: 90,
-  country: "Việt Nam",
-  director: "Tôm",
-  cast: "Tuấn, Minh",
+  genres: ["Kinh dị"],
   description:
     "Bộ phim xoay quanh Yui - cô gái bị nhốt người lại trong ca nhà của Ambar và mang danh 'tiểu tam'. Từ một người lạ thành lạ, Yui rơi vào chân thành một rắc rối tình yêu bị các tiện lạ một rắc yêu bỏ. Những cảm nhận phức tạp liên tục khiến cô hoảng loạn và cửa nủa thẳm, Yui bất đầu cùng nhìn với những người lại cũ, ám chỉ và theo dõi hoảng...",
+  director: "Tôm",
+  actors: ["Tuấn", "Minh"],
+  country: "Việt Nam",
+  durationMinutes: 90,
+  releaseDate: new Date("2024-11-01"),
+  posterUrl:
+    "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
   trailerUrl: "https://youtube.com",
 };
 
-const mockComments = [
+const mockComments: ReviewResponseDto[] = [
   {
     id: 1,
-    userName: "Minh Tuấn",
+    userId: 1,
+    movieId: 1,
     rating: 5,
     comment: "Phim đã làm và cần xúc...",
+    createdAt: new Date("2024-11-15"),
   },
   {
     id: 2,
-    userName: "Thái Tuấn",
+    userId: 2,
+    movieId: 1,
     rating: 5,
     comment: "Phim thực hay lắm...",
+    createdAt: new Date("2024-11-16"),
   },
 ];
 
@@ -50,49 +62,68 @@ const mockDates = [
   { date: "09/11", dayOfWeek: "Chủ Nhật" },
 ];
 
-const mockTheaters = [
+const mockTheaters: (RoomResponseDto & {
+  showtimes: string[];
+})[] = [
   {
     id: 1,
-    name: "Cinema Bình Dương",
-    address: "Nhà văn hóa anh viên - Đồng Hòa, HCM",
+    cinemaId: 1,
+    name: "Phòng 1",
+    capacity: 140,
+    cinema: {
+      name: "Cinema Bình Dương",
+      address: "Nhà văn hóa anh viên - Đồng Hòa, HCM",
+    },
     showtimes: ["08:00", "10:00"],
   },
   {
     id: 2,
-    name: "Cinema Thủ Đức",
-    address: "Khu phố 6, phường Linh Trung, Thủ Đức",
+    cinemaId: 2,
+    name: "Phòng 2",
+    capacity: 140,
+    cinema: {
+      name: "Cinema Thủ Đức",
+      address: "Khu phố 6, phường Linh Trung, Thủ Đức",
+    },
     showtimes: ["14:00", "16:00", "18:00"],
   },
 ];
 
-const mockSeats = (() => {
+const mockSeats: (SeatResponseDto & {
+  row: string;
+  number: number;
+  status: "available" | "selected" | "booked";
+})[] = (() => {
   const rows = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-  const seats: Array<{
-    id: string;
+  const seats: (SeatResponseDto & {
     row: string;
     number: number;
     status: "available" | "selected" | "booked";
-  }> = [];
+  })[] = [];
+  let seatId = 1;
   rows.forEach((row) => {
     for (let num = 1; num <= 14; num++) {
+      const isBooked = Math.random() > 0.8;
       seats.push({
-        id: `${row}${num}`,
+        id: seatId++,
+        roomId: 1,
+        seatNumber: `${row}${num}`,
+        isReserved: isBooked,
         row,
         number: num,
-        status: (Math.random() > 0.8 ? "booked" : "available") as
-          | "available"
-          | "booked",
+        status: isBooked ? "booked" : "available",
       });
     }
   });
   return seats;
 })();
 
-const mockFoodDrinks = [
+const mockFoodDrinks: ProductResponseDto[] = [
   {
     id: 1,
     name: "COMBO 1",
     price: 149000,
+    category: "food",
     image:
       "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
   },
@@ -100,6 +131,7 @@ const mockFoodDrinks = [
     id: 2,
     name: "COMBO 2",
     price: 249000,
+    category: "food",
     image:
       "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
   },
@@ -107,6 +139,7 @@ const mockFoodDrinks = [
     id: 3,
     name: "COMBO 3",
     price: 349000,
+    category: "food",
     image:
       "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
   },
@@ -139,11 +172,13 @@ const MovieDetailAndBooking = () => {
   }, []);
 
   const handleRatingSubmit = (rating: number, comment: string) => {
-    const newComment = {
+    const newComment: ReviewResponseDto = {
       id: comments.length + 1,
-      userName: "Người dùng mới",
+      userId: 999, // Mock user ID
+      movieId: mockMovie.id,
       rating,
       comment,
+      createdAt: new Date(),
     };
     setComments([...comments, newComment]);
   };
@@ -157,7 +192,7 @@ const MovieDetailAndBooking = () => {
 
     setSeats((prev) =>
       prev.map((seat) =>
-        seat.id === seatId
+        seat.seatNumber === seatId
           ? {
               ...seat,
               status: selectedSeats.includes(seatId) ? "available" : "selected",
@@ -236,7 +271,7 @@ const MovieDetailAndBooking = () => {
                 seats={seats}
                 selectedSeats={selectedSeats}
                 onSelectSeat={handleSeatSelect}
-                theaterName={selectedTheaterData?.name.split(" ").pop() || "1"}
+                theaterName={selectedTheaterData?.name || "1"}
               />
 
               <FoodDrinkSelection
@@ -253,7 +288,7 @@ const MovieDetailAndBooking = () => {
           <div className="mt-8">
             <BookingSummaryPanel
               movieTitle={mockMovie.title}
-              theaterName={selectedTheaterData?.name || ""}
+              theaterName={selectedTheaterData?.cinema?.name || ""}
               showtime={`Phòng chiếu: ${selectedShowtime}`}
               selectedSeats={selectedSeats}
               totalPrice={calculateTotalPrice()}

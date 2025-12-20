@@ -1,23 +1,56 @@
-// Types liên quan đến Movie
-
+// Movie Types
 export interface Movie {
   id: number;
   title: string;
-  poster: string;
-  genre: string;
-  duration: number;
-  country: string;
-  director: string;
-  cast: string;
   description: string;
-  trailerUrl?: string;
-  rating?: number;
+  genres: string[];
+  director: string;
+  releaseDate: Date;
+  durationMinutes: number;
+  country: string;
+  actors: string[];
+  posterUrl: string;
+  trailerUrl: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface MovieCard {
+export interface MovieCreateDto {
+  title: string;
+  genres: string[];
+  description: string;
+  director: string;
+  actors: string[];
+  country: string;
+  durationMinutes: number;
+  releaseDate: Date;
+  posterUrl: string;
+  trailerUrl: string;
+}
+
+export interface MovieUpdateDto {
+  title?: string;
+  genres?: string[];
+  description?: string;
+  director?: string;
+  actors?: string[];
+  country?: string;
+  durationMinutes?: number;
+  releaseDate?: Date;
+  posterUrl?: string;
+  trailerUrl?: string;
+}
+
+export interface MovieResponseDto {
   id: number;
   title: string;
-  poster: string;
-  trailerUrl?: string;
-  rating?: number;
+  genres: string[];
+  description: string;
+  director: string;
+  actors: string[];
+  country: string;
+  durationMinutes: number;
+  releaseDate: Date;
+  posterUrl: string;
+  trailerUrl: string;
 }

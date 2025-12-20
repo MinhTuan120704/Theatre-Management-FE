@@ -1,10 +1,10 @@
 // gồm danh sách các đánh giá từ các người dùng: hiển thị tên + đánh giá của người dùng đó
 
 import { Star } from "lucide-react";
-import type { Comment as CommentType } from "../../../../types";
+import type { ReviewResponseDto } from "../../../../types";
 
 interface CommentProps {
-  comments: CommentType[];
+  comments: ReviewResponseDto[];
 }
 
 const Comment = ({ comments }: CommentProps) => {
@@ -22,7 +22,7 @@ const Comment = ({ comments }: CommentProps) => {
           >
             <div className="flex items-center justify-between">
               <span className="text-white font-semibold">
-                {comment.userName}
+                Người dùng #{comment.userId}
               </span>
               <div className="flex gap-1">
                 {[...Array(5)].map((_, index) => (
@@ -39,6 +39,9 @@ const Comment = ({ comments }: CommentProps) => {
               </div>
             </div>
             <p className="text-white text-sm">{comment.comment}</p>
+            <p className="text-gray-400 text-xs">
+              {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
+            </p>
           </div>
         ))}
       </div>

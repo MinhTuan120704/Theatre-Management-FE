@@ -5,25 +5,57 @@ import { useNavigate } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { MovieResponseDto } from "../../../types";
 
 // Mock data - TODO: Replace with API data
-const mockBanners = [
+// Banner chứa thông tin phim để display
+const mockBanners: (MovieResponseDto & { bannerImage?: string })[] = [
   {
     id: 1,
-    title: "PHIM COMING SOON",
-    image:
+    title: "PHIM COMING SOON - Dune: Part Three",
+    genres: ["Khoa học viễn tưởng", "Phiêu lưu"],
+    description: "Phần tiếp theo của series Dune đình đám.",
+    director: "Denis Villeneuve",
+    actors: ["Timothée Chalamet", "Zendaya"],
+    country: "Mỹ",
+    durationMinutes: 165,
+    releaseDate: new Date("2025-03-15"),
+    posterUrl:
+      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
+    trailerUrl: "https://youtube.com",
+    bannerImage:
       "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200&h=500&fit=crop",
   },
   {
     id: 2,
-    title: "PHIM HOT NHẤT",
-    image:
+    title: "PHIM HOT NHẤT - Avatar: The Way of Water",
+    genres: ["Hành động", "Khoa học viễn tưởng"],
+    description: "Phần tiếp theo của bộ phim Avatar huyền thoại.",
+    director: "James Cameron",
+    actors: ["Sam Worthington", "Zoe Saldana"],
+    country: "Mỹ",
+    durationMinutes: 192,
+    releaseDate: new Date("2024-12-10"),
+    posterUrl:
+      "https://images.unsplash.com/photo-1594908900066-3f47337549d8?w=400&h=600&fit=crop",
+    trailerUrl: "https://youtube.com",
+    bannerImage:
       "https://images.unsplash.com/photo-1594908900066-3f47337549d8?w=1200&h=500&fit=crop",
   },
   {
     id: 3,
-    title: "PHIM MỚI RA MẮT",
-    image:
+    title: "PHIM MỚI RA MẮT - Fast & Furious 11",
+    genres: ["Hành động", "Phiêu lưu"],
+    description: "Cuộc đua tốc độ mới với nhiều màn hành động nóng bỏng.",
+    director: "Justin Lin",
+    actors: ["Vin Diesel", "Michelle Rodriguez"],
+    country: "Mỹ",
+    durationMinutes: 150,
+    releaseDate: new Date("2024-12-15"),
+    posterUrl:
+      "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&h=600&fit=crop",
+    trailerUrl: "https://youtube.com",
+    bannerImage:
       "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&h=500&fit=crop",
   },
 ];
@@ -59,7 +91,7 @@ const Carousel = () => {
             >
               <div className="relative h-[500px] bg-gradient-to-r from-purple-900 to-blue-900">
                 <img
-                  src={banner.image}
+                  src={banner.bannerImage || banner.posterUrl}
                   alt={banner.title}
                   className="w-full h-full object-cover opacity-80"
                 />

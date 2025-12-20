@@ -2,10 +2,10 @@
 // Bên phải là thông tin phim: Tiêu đề phim, thể loại, độ dài phim, xuất xứ phim, thông tin ghi công (đạo diễn, diễn viên,...), nội dung phim (mô tả), nút xem trailer.
 
 import { Film, Clock, Globe, Play } from "lucide-react";
-import type { Movie } from "../../../../types";
+import type { MovieResponseDto } from "../../../../types";
 
 interface MovieInfoProps {
-  movie: Movie;
+  movie: MovieResponseDto;
 }
 
 const MovieInfo = ({ movie }: MovieInfoProps) => {
@@ -20,7 +20,7 @@ const MovieInfo = ({ movie }: MovieInfoProps) => {
       {/* Movie Poster */}
       <div className="lg:col-span-1">
         <img
-          src={movie.poster}
+          src={movie.posterUrl}
           alt={movie.title}
           className="w-full rounded-lg shadow-2xl"
         />
@@ -37,11 +37,13 @@ const MovieInfo = ({ movie }: MovieInfoProps) => {
         <div className="flex flex-wrap gap-4 text-brand-yellow-dark">
           <div className="flex items-center gap-2">
             <Film size={20} />
-            <span className="text-white text-sm">{movie.genre}</span>
+            <span className="text-white text-sm">
+              {movie.genres.join(", ")}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Clock size={20} />
-            <span className="text-white text-sm">{movie.duration}'</span>
+            <span className="text-white text-sm">{movie.durationMinutes}'</span>
           </div>
           <div className="flex items-center gap-2">
             <Globe size={20} />
@@ -57,7 +59,8 @@ const MovieInfo = ({ movie }: MovieInfoProps) => {
               <span className="font-semibold">Đạo diễn:</span> {movie.director}
             </p>
             <p>
-              <span className="font-semibold">Diễn viên:</span> {movie.cast}
+              <span className="font-semibold">Diễn viên:</span>{" "}
+              {movie.actors.join(", ")}
             </p>
           </div>
         </div>

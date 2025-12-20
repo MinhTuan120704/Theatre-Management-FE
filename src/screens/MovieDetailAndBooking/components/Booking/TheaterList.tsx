@@ -4,10 +4,10 @@
 
 import { MapPin } from "lucide-react";
 import { useState } from "react";
-import type { Theater } from "../../../../types";
+import type { RoomResponseDto } from "../../../../types";
 
 interface TheaterListProps {
-  theaters: Theater[];
+  theaters: (RoomResponseDto & { showtimes: string[] })[];
   selectedTheater: number | null;
   selectedShowtime: string | null;
   onSelectTheater: (theaterId: number) => void;
@@ -52,9 +52,11 @@ const TheaterList = ({
                   className="w-full text-left px-4 py-3 hover:bg-gray-100 transition first:rounded-t-lg last:rounded-b-lg"
                 >
                   <div className="font-semibold text-gray-900">
-                    {theater.name}
+                    {theater.cinema?.name} - {theater.name}
                   </div>
-                  <div className="text-xs text-gray-600">{theater.address}</div>
+                  <div className="text-xs text-gray-600">
+                    {theater.cinema?.address}
+                  </div>
                 </button>
               ))}
             </div>
@@ -66,9 +68,11 @@ const TheaterList = ({
       {selectedTheaterData && (
         <div className="bg-brand-purple-2 rounded-lg p-6 space-y-4">
           <h3 className="text-xl font-bold text-white">
-            {selectedTheaterData.name}
+            {selectedTheaterData.cinema?.name} - {selectedTheaterData.name}
           </h3>
-          <p className="text-white text-sm">{selectedTheaterData.address}</p>
+          <p className="text-white text-sm">
+            {selectedTheaterData.cinema?.address}
+          </p>
 
           {/* Showtimes */}
           <div className="flex flex-wrap gap-3">

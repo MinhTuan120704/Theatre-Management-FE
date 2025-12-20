@@ -3,18 +3,59 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Film, Calendar, Clock } from "lucide-react";
+import type {
+  CinemaResponseDto,
+  MovieResponseDto,
+  ShowtimeResponseDto,
+} from "../../../types";
 
 // Mock data - TODO: Replace with API
-const mockTheaters = [
-  { id: 1, name: "CGV Vincom" },
-  { id: 2, name: "CGV Landmark" },
-  { id: 3, name: "Lotte Cinema" },
+const mockTheaters: CinemaResponseDto[] = [
+  { id: 1, name: "CGV Vincom", address: "Tầng 5, Vincom Center, Quận 1" },
+  { id: 2, name: "CGV Landmark", address: "Landmark 81, Bình Thạnh" },
+  { id: 3, name: "Lotte Cinema", address: "Lotte Mart, Quận 7" },
 ];
 
-const mockMovies = [
-  { id: 1, title: "Cục Vàng Của Ngoại" },
-  { id: 2, title: "Avatar 3" },
-  { id: 3, title: "Fast & Furious 11" },
+const mockMovies: MovieResponseDto[] = [
+  {
+    id: 1,
+    title: "Cục Vàng Của Ngoại",
+    genres: ["Hài", "Gia đình"],
+    description: "Một bộ phim hài hước về gia đình và tình yêu thương.",
+    director: "Nguyễn Văn A",
+    actors: ["Diễn viên A", "Diễn viên B"],
+    country: "Việt Nam",
+    durationMinutes: 120,
+    releaseDate: new Date("2024-12-01"),
+    posterUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1",
+    trailerUrl: "https://youtube.com",
+  },
+  {
+    id: 2,
+    title: "Avatar 3",
+    genres: ["Hành động", "Khoa học viễn tưởng"],
+    description: "Phần tiếp theo của Avatar.",
+    director: "James Cameron",
+    actors: ["Sam Worthington", "Zoe Saldana"],
+    country: "Mỹ",
+    durationMinutes: 180,
+    releaseDate: new Date("2024-12-15"),
+    posterUrl: "https://images.unsplash.com/photo-1594908900066-3f47337549d8",
+    trailerUrl: "https://youtube.com",
+  },
+  {
+    id: 3,
+    title: "Fast & Furious 11",
+    genres: ["Hành động"],
+    description: "Cuộc đua tốc độ.",
+    director: "Justin Lin",
+    actors: ["Vin Diesel", "Michelle Rodriguez"],
+    country: "Mỹ",
+    durationMinutes: 150,
+    releaseDate: new Date("2024-12-10"),
+    posterUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728",
+    trailerUrl: "https://youtube.com",
+  },
 ];
 
 const mockDates = [
@@ -23,11 +64,35 @@ const mockDates = [
   { value: "2024-12-19", label: "Thứ 5 - 19/12" },
 ];
 
-const mockShowtimes = [
-  { id: 1, time: "10:00" },
-  { id: 2, time: "14:30" },
-  { id: 3, time: "18:45" },
-  { id: 4, time: "21:00" },
+const mockShowtimes: ShowtimeResponseDto[] = [
+  {
+    id: 1,
+    roomId: 1,
+    movieId: 1,
+    showTime: new Date("2024-12-17T10:00:00"),
+    price: 80000,
+  },
+  {
+    id: 2,
+    roomId: 1,
+    movieId: 1,
+    showTime: new Date("2024-12-17T14:30:00"),
+    price: 90000,
+  },
+  {
+    id: 3,
+    roomId: 2,
+    movieId: 1,
+    showTime: new Date("2024-12-17T18:45:00"),
+    price: 100000,
+  },
+  {
+    id: 4,
+    roomId: 2,
+    movieId: 1,
+    showTime: new Date("2024-12-17T21:00:00"),
+    price: 100000,
+  },
 ];
 
 const QuickBooking = () => {
@@ -142,7 +207,10 @@ const QuickBooking = () => {
             <option value="">Chọn giờ</option>
             {mockShowtimes.map((showtime) => (
               <option key={showtime.id} value={showtime.id}>
-                {showtime.time}
+                {new Date(showtime.showTime).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </option>
             ))}
           </select>

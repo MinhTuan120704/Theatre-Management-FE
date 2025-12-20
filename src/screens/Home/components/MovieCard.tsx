@@ -2,17 +2,11 @@
 
 import { useNavigate } from "react-router-dom";
 import { Play, Ticket } from "lucide-react";
-import type { MovieCard as MovieCardType } from "../../../types";
+import type { MovieResponseDto } from "../../../types";
 
-type MovieCardProps = MovieCardType;
+type MovieCardProps = MovieResponseDto;
 
-const MovieCard = ({
-  id,
-  title,
-  poster,
-  trailerUrl,
-  rating,
-}: MovieCardProps) => {
+const MovieCard = ({ id, title, posterUrl, trailerUrl }: MovieCardProps) => {
   const navigate = useNavigate();
 
   const handleBooking = () => {
@@ -44,17 +38,10 @@ const MovieCard = ({
       {/* Movie Poster */}
       <div className="relative rounded-lg overflow-hidden mb-3">
         <img
-          src={poster}
+          src={posterUrl}
           alt={title}
           className="w-full h-[400px] object-cover"
         />
-
-        {/* Rating Badge */}
-        {rating && (
-          <div className="absolute top-3 right-3 bg-brand-yellow-dark text-black font-bold px-3 py-1 rounded-full text-sm">
-            ★ {rating}
-          </div>
-        )}
       </div>
 
       {/* Action Buttons */}

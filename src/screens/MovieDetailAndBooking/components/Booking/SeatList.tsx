@@ -1,10 +1,16 @@
 // Hiển thị danh sách các button tương ứng với layout ghế ở trong rạp
 // có thể chọn nhiều ghế cùng 1 lúc, ghế đang được chọn phải được highlight, ghế đã đặt phải disable
 
-import type { Seat } from "../../../../types";
+import type { SeatResponseDto } from "../../../../types";
+
+type SeatWithStatus = SeatResponseDto & {
+  row: string;
+  number: number;
+  status: "available" | "selected" | "booked";
+};
 
 interface SeatListProps {
-  seats: Seat[];
+  seats: SeatWithStatus[];
   selectedSeats: string[];
   onSelectSeat: (seatId: string) => void;
   theaterName: string;
@@ -21,15 +27,15 @@ const SeatList = ({
     if (!acc[seat.row]) acc[seat.row] = [];
     acc[seat.row].push(seat);
     return acc;
-  }, {} as Record<string, Seat[]>);
+  }, {} as Record<string, SeatWithStatus[]>);
 
   const rows = Object.keys(seatsByRow).sort();
 
-  const getSeatClass = (seat: Seat) => {
+  const getSeatClass = (seat: SeatWithStatus) => {
     if (seat.status === "booked") {
       return "bg-gray-500 cursor-not-allowed text-white";
     }
-    if (selectedSeats.includes(seat.id)) {
+    if (selectedSeats.includes(seat.seatNumber)) {
       return "bg-brand-yellow-dark text-black font-bold";
     }
     return "bg-white text-black hover:bg-gray-200";
@@ -66,7 +72,7 @@ const SeatList = ({
                 <button
                   key={seat.id}
                   onClick={() =>
-                    seat.status !== "booked" && onSelectSeat(seat.id)
+                    seat.status !== "booked" && onSelectSeat(seat.seatNumber)
                   }
                   disabled={seat.status === "booked"}
                   className={`w-10 h-10 rounded text-xs font-semibold transition ${getSeatClass(
