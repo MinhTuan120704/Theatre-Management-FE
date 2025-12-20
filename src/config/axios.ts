@@ -1,4 +1,5 @@
-import axios, {
+import axios from "axios";
+import type {
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
@@ -7,7 +8,7 @@ import axios, {
 
 // API Configuration
 const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/";
 const API_TIMEOUT = 30000; // 30 seconds
 
 // Create axios instance

@@ -1,4 +1,5 @@
-import axiosInstance, { AxiosResponse } from "../config/axios";
+import axiosInstance from "../config/axios";
+import type { AxiosResponse } from "axios";
 import { ENDPOINTS } from "../config/endpoints";
 import type {
   RoomResponseDto,
