@@ -12,153 +12,177 @@ import TheaterList from "./components/Booking/TheaterList";
 import SeatList from "./components/Booking/SeatList";
 import FoodDrinkSelection from "./components/Booking/FoodDrinkSelection";
 import BookingSummaryPanel from "./components/Booking/BookingSummaryPanel";
+import {
+  MovieService,
+  ReviewService,
+  ShowtimeService,
+  SeatService,
+  ProductService,
+} from "../../services";
 import type {
   MovieResponseDto,
   ReviewResponseDto,
-  RoomResponseDto,
   SeatResponseDto,
   ProductResponseDto,
+  ShowtimeResponseDto,
 } from "../../types";
-
-// Mock data - TODO: Replace with API
-const mockMovie: MovieResponseDto = {
-  id: 1,
-  title: "Lọ Lem Chơi Ngại",
-  genres: ["Kinh dị"],
-  description:
-    "Bộ phim xoay quanh Yui - cô gái bị nhốt người lại trong ca nhà của Ambar và mang danh 'tiểu tam'. Từ một người lạ thành lạ, Yui rơi vào chân thành một rắc rối tình yêu bị các tiện lạ một rắc yêu bỏ. Những cảm nhận phức tạp liên tục khiến cô hoảng loạn và cửa nủa thẳm, Yui bất đầu cùng nhìn với những người lại cũ, ám chỉ và theo dõi hoảng...",
-  director: "Tôm",
-  actors: ["Tuấn", "Minh"],
-  country: "Việt Nam",
-  durationMinutes: 90,
-  releaseDate: new Date("2024-11-01"),
-  posterUrl:
-    "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
-  trailerUrl: "https://youtube.com",
-};
-
-const mockComments: ReviewResponseDto[] = [
-  {
-    id: 1,
-    userId: 1,
-    movieId: 1,
-    rating: 5,
-    comment: "Phim đã làm và cần xúc...",
-    createdAt: new Date("2024-11-15"),
-  },
-  {
-    id: 2,
-    userId: 2,
-    movieId: 1,
-    rating: 5,
-    comment: "Phim thực hay lắm...",
-    createdAt: new Date("2024-11-16"),
-  },
-];
-
-const mockDates = [
-  { date: "07/11", dayOfWeek: "Thứ Sáu" },
-  { date: "08/11", dayOfWeek: "Thứ Bảy" },
-  { date: "09/11", dayOfWeek: "Chủ Nhật" },
-];
-
-const mockTheaters: (RoomResponseDto & {
-  showtimes: string[];
-})[] = [
-  {
-    id: 1,
-    cinemaId: 1,
-    name: "Phòng 1",
-    capacity: 140,
-    cinema: {
-      name: "Cinema Bình Dương",
-      address: "Nhà văn hóa anh viên - Đồng Hòa, HCM",
-    },
-    showtimes: ["08:00", "10:00"],
-  },
-  {
-    id: 2,
-    cinemaId: 2,
-    name: "Phòng 2",
-    capacity: 140,
-    cinema: {
-      name: "Cinema Thủ Đức",
-      address: "Khu phố 6, phường Linh Trung, Thủ Đức",
-    },
-    showtimes: ["14:00", "16:00", "18:00"],
-  },
-];
-
-const mockSeats: (SeatResponseDto & {
-  row: string;
-  number: number;
-  status: "available" | "selected" | "booked";
-})[] = (() => {
-  const rows = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-  const seats: (SeatResponseDto & {
-    row: string;
-    number: number;
-    status: "available" | "selected" | "booked";
-  })[] = [];
-  let seatId = 1;
-  rows.forEach((row) => {
-    for (let num = 1; num <= 14; num++) {
-      const isBooked = Math.random() > 0.8;
-      seats.push({
-        id: seatId++,
-        roomId: 1,
-        seatNumber: `${row}${num}`,
-        isReserved: isBooked,
-        row,
-        number: num,
-        status: isBooked ? "booked" : "available",
-      });
-    }
-  });
-  return seats;
-})();
-
-const mockFoodDrinks: ProductResponseDto[] = [
-  {
-    id: 1,
-    name: "COMBO 1",
-    price: 149000,
-    category: "food",
-    image:
-      "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
-  },
-  {
-    id: 2,
-    name: "COMBO 2",
-    price: 249000,
-    category: "food",
-    image:
-      "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
-  },
-  {
-    id: 3,
-    name: "COMBO 3",
-    price: 349000,
-    category: "food",
-    image:
-      "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=200&h=200&fit=crop",
-  },
-];
 
 const MovieDetailAndBooking = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
 
-  // State management
-  const [comments, setComments] = useState(mockComments);
-  const [selectedDate, setSelectedDate] = useState(mockDates[0].date);
-  const [selectedTheater, setSelectedTheater] = useState<number | null>(null);
-  const [selectedShowtime, setSelectedShowtime] = useState<string | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [seats, setSeats] = useState(mockSeats);
+  // Loading states
+  const [loading, setLoading] = useState({
+    movie: true,
+    reviews: true,
+    showtimes: true,
+    products: true,
+    seats: false,
+  });
+
+  // Data states
+  const [movie, setMovie] = useState<MovieResponseDto | null>(null);
+  const [reviews, setReviews] = useState<ReviewResponseDto[]>([]);
+  const [showtimes, setShowtimes] = useState<ShowtimeResponseDto[]>([]);
+  const [products, setProducts] = useState<ProductResponseDto[]>([]);
+  const [seats, setSeats] = useState<SeatResponseDto[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Selection states
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedShowtimeId, setSelectedShowtimeId] = useState<number | null>(
+    null
+  );
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [selectedFoodDrinks, setSelectedFoodDrinks] = useState<
     Record<number, number>
   >({});
+
+  // Fetch movie details
+  useEffect(() => {
+    const fetchMovieDetails = async () => {
+      if (!movieId) return;
+
+      try {
+        setLoading((prev) => ({ ...prev, movie: true }));
+        const response = await MovieService.getById(Number(movieId));
+        setMovie(response);
+      } catch (err) {
+        console.error("Error fetching movie:", err);
+        setError("Không thể tải thông tin phim");
+      } finally {
+        setLoading((prev) => ({ ...prev, movie: false }));
+      }
+    };
+
+    fetchMovieDetails();
+  }, [movieId]);
+
+  // Fetch reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!movieId) return;
+
+      try {
+        setLoading((prev) => ({ ...prev, reviews: true }));
+        const response = await ReviewService.getAll({ limit: 100 });
+        // Filter reviews by movieId on client side
+        const movieReviews = response.reviews.filter(
+          (review) => review.movieId === Number(movieId)
+        );
+        setReviews(movieReviews);
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+        // Don't show error for reviews, just leave it empty
+      } finally {
+        setLoading((prev) => ({ ...prev, reviews: false }));
+      }
+    };
+
+    fetchReviews();
+  }, [movieId]);
+
+  // Fetch showtimes for the movie
+  useEffect(() => {
+    const fetchShowtimes = async () => {
+      if (!movieId) return;
+
+      try {
+        setLoading((prev) => ({ ...prev, showtimes: true }));
+        const response = await ShowtimeService.getAll({ limit: 100 });
+        // Filter showtimes by movieId on client side
+        const movieShowtimes = response.showtimes.filter(
+          (showtime) => showtime.movieId === Number(movieId)
+        );
+        setShowtimes(movieShowtimes);
+
+        // Set default date to first available date
+        if (response.showtimes.length > 0) {
+          const firstDate = new Date(response.showtimes[0].showTime)
+            .toISOString()
+            .split("T")[0];
+          setSelectedDate(firstDate);
+        }
+      } catch (err) {
+        console.error("Error fetching showtimes:", err);
+        setError("Không thể tải lịch chiếu");
+      } finally {
+        setLoading((prev) => ({ ...prev, showtimes: false }));
+      }
+    };
+
+    fetchShowtimes();
+  }, [movieId]);
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading((prev) => ({ ...prev, products: true }));
+        const response = await ProductService.getAll({ limit: 50 });
+        setProducts(response.products);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        // Don't show error for products
+      } finally {
+        setLoading((prev) => ({ ...prev, products: false }));
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch seats when showtime is selected
+  useEffect(() => {
+    const fetchSeats = async () => {
+      if (!selectedShowtimeId) {
+        setSeats([]);
+        return;
+      }
+
+      const selectedShowtime = showtimes.find(
+        (st) => st.id === selectedShowtimeId
+      );
+      if (!selectedShowtime) return;
+
+      try {
+        setLoading((prev) => ({ ...prev, seats: true }));
+        const response = await SeatService.getAll({ limit: 200 });
+        // Filter seats by roomId on client side
+        const roomSeats = response.seats.filter(
+          (seat) => seat.roomId === selectedShowtime.roomId
+        );
+        setSeats(roomSeats);
+      } catch (err) {
+        console.error("Error fetching seats:", err);
+        setError("Không thể tải danh sách ghế");
+      } finally {
+        setLoading((prev) => ({ ...prev, seats: false }));
+      }
+    };
+
+    fetchSeats();
+  }, [selectedShowtimeId, showtimes]);
 
   // Scroll to booking section if hash is present
   useEffect(() => {
@@ -171,34 +195,102 @@ const MovieDetailAndBooking = () => {
     }
   }, []);
 
-  const handleRatingSubmit = (rating: number, comment: string) => {
-    const newComment: ReviewResponseDto = {
-      id: comments.length + 1,
-      userId: 999, // Mock user ID
-      movieId: mockMovie.id,
-      rating,
-      comment,
-      createdAt: new Date(),
+  // Get unique dates from showtimes
+  const availableDates = Array.from(
+    new Set(
+      showtimes.map((st) => new Date(st.showTime).toISOString().split("T")[0])
+    )
+  ).map((dateStr) => {
+    const date = new Date(dateStr);
+    return {
+      date: date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      }),
+      dayOfWeek: date.toLocaleDateString("vi-VN", { weekday: "long" }),
+      isoDate: dateStr,
     };
-    setComments([...comments, newComment]);
+  });
+
+  // Get showtimes for selected date grouped by room
+  const showtimesByRoom = showtimes
+    .filter(
+      (st) => new Date(st.showTime).toISOString().split("T")[0] === selectedDate
+    )
+    .reduce((acc, showtime) => {
+      const roomKey = showtime.roomId;
+      if (!acc[roomKey]) {
+        acc[roomKey] = {
+          roomId: showtime.roomId,
+          showtimes: [],
+        };
+      }
+      acc[roomKey].showtimes.push(showtime);
+      return acc;
+    }, {} as Record<number, { roomId: number; showtimes: ShowtimeResponseDto[] }>);
+
+  const theaterList = Object.values(showtimesByRoom).map(
+    ({ roomId, showtimes }) => ({
+      id: roomId,
+      cinemaId: 1,
+      name: `Phòng ${roomId}`,
+      capacity: 140,
+      cinema: {
+        name: "Cinema",
+        address: "Địa chỉ rạp",
+      },
+      showtimes: showtimes.map((st) =>
+        new Date(st.showTime).toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      ),
+      showtimeIds: showtimes.map((st) => st.id),
+    })
+  );
+
+  const handleRatingSubmit = async (rating: number, comment: string) => {
+    if (!movieId) return;
+
+    try {
+      await ReviewService.create({
+        userId: 1, // TODO: Get from auth context
+        movieId: Number(movieId),
+        rating,
+        comment,
+      });
+
+      // Refresh reviews
+      const response = await ReviewService.getAll({ limit: 100 });
+      const movieReviews = response.reviews.filter(
+        (review) => review.movieId === Number(movieId)
+      );
+      setReviews(movieReviews);
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      alert("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+    }
   };
 
-  const handleSeatSelect = (seatId: string) => {
+  const handleTheaterSelect = () => {
+    // Reset showtime and seats when theater changes
+    setSelectedShowtimeId(null);
+    setSelectedSeats([]);
+  };
+
+  const handleShowtimeSelect = (theaterId: number, showtimeIndex: number) => {
+    const theater = theaterList.find((t) => t.id === theaterId);
+    if (theater && theater.showtimeIds) {
+      setSelectedShowtimeId(theater.showtimeIds[showtimeIndex]);
+      setSelectedSeats([]);
+    }
+  };
+
+  const handleSeatSelect = (seatId: number) => {
     setSelectedSeats((prev) =>
       prev.includes(seatId)
         ? prev.filter((id) => id !== seatId)
         : [...prev, seatId]
-    );
-
-    setSeats((prev) =>
-      prev.map((seat) =>
-        seat.seatNumber === seatId
-          ? {
-              ...seat,
-              status: selectedSeats.includes(seatId) ? "available" : "selected",
-            }
-          : seat
-      )
     );
   };
 
@@ -210,11 +302,14 @@ const MovieDetailAndBooking = () => {
   };
 
   const calculateTotalPrice = () => {
-    const seatPrice = 49000;
+    const selectedShowtime = showtimes.find(
+      (st) => st.id === selectedShowtimeId
+    );
+    const seatPrice = selectedShowtime?.price || 0;
     const seatsTotal = selectedSeats.length * seatPrice;
     const foodTotal = Object.entries(selectedFoodDrinks).reduce(
       (sum, [itemId, qty]) => {
-        const item = mockFoodDrinks.find((f) => f.id === Number(itemId));
+        const item = products.find((f) => f.id === Number(itemId));
         return sum + (item ? item.price * qty : 0);
       },
       0
@@ -223,11 +318,10 @@ const MovieDetailAndBooking = () => {
   };
 
   const handleBooking = () => {
-    // TODO: Implement booking logic
+    // TODO: Implement booking API call
     console.log("Booking:", {
       movieId,
-      theater: selectedTheater,
-      showtime: selectedShowtime,
+      showtimeId: selectedShowtimeId,
       seats: selectedSeats,
       foodDrinks: selectedFoodDrinks,
       total: calculateTotalPrice(),
@@ -235,62 +329,109 @@ const MovieDetailAndBooking = () => {
     navigate("/booking/confirmation");
   };
 
-  const selectedTheaterData = mockTheaters.find(
-    (t) => t.id === selectedTheater
+  const selectedTheater = theaterList.find((t) =>
+    t.showtimeIds?.includes(selectedShowtimeId || -1)
   );
+
+  if (loading.movie) {
+    return (
+      <div className="bg-gradient-to-b from-bg-dark to-bg-light min-h-screen">
+        <div className="container mx-auto px-4 py-12">
+          <div className="animate-pulse">
+            <div className="h-96 bg-gray-700 rounded mb-8" />
+            <div className="h-64 bg-gray-700 rounded mb-8" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !movie) {
+    return (
+      <div className="bg-gradient-to-b from-bg-dark to-bg-light min-h-screen">
+        <div className="container mx-auto px-4 py-12">
+          <div className="bg-red-500/20 border border-red-500 text-white px-4 py-3 rounded">
+            {error || "Không tìm thấy phim"}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-b from-bg-dark to-bg-light min-h-screen">
       <div className="container mx-auto px-4 py-12">
         {/* Movie Detail Section */}
         <div className="mb-16">
-          <MovieInfo movie={mockMovie} />
+          <MovieInfo movie={movie} />
           <Rating onSubmit={handleRatingSubmit} />
-          <Comment comments={comments} />
+          <Comment comments={reviews} loading={loading.reviews} />
         </div>
 
         {/* Booking Section */}
         <div id="booking-section" className="scroll-mt-20">
-          <MovieShowtimes
-            dates={mockDates}
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-          />
-
-          <TheaterList
-            theaters={mockTheaters}
-            selectedTheater={selectedTheater}
-            selectedShowtime={selectedShowtime}
-            onSelectTheater={setSelectedTheater}
-            onSelectShowtime={setSelectedShowtime}
-          />
-
-          {selectedTheater && selectedShowtime && (
+          {loading.showtimes ? (
+            <div className="text-white text-center py-8">
+              Đang tải lịch chiếu...
+            </div>
+          ) : availableDates.length > 0 ? (
             <>
-              <SeatList
-                seats={seats}
-                selectedSeats={selectedSeats}
-                onSelectSeat={handleSeatSelect}
-                theaterName={selectedTheaterData?.name || "1"}
+              <MovieShowtimes
+                dates={availableDates}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
               />
 
-              <FoodDrinkSelection
-                items={mockFoodDrinks}
-                selectedItems={selectedFoodDrinks}
-                onUpdateQuantity={handleFoodDrinkUpdate}
+              <TheaterList
+                theaters={theaterList}
+                selectedTheater={selectedTheater?.id || null}
+                onSelectTheater={handleTheaterSelect}
+                onSelectShowtime={handleShowtimeSelect}
               />
+
+              {selectedShowtimeId && (
+                <>
+                  {loading.seats ? (
+                    <div className="text-white text-center py-8">
+                      Đang tải danh sách ghế...
+                    </div>
+                  ) : (
+                    <SeatList
+                      seats={seats}
+                      selectedSeats={selectedSeats}
+                      onSelectSeat={handleSeatSelect}
+                      theaterName={selectedTheater?.name || ""}
+                    />
+                  )}
+
+                  {!loading.products && (
+                    <FoodDrinkSelection
+                      items={products}
+                      selectedItems={selectedFoodDrinks}
+                      onUpdateQuantity={handleFoodDrinkUpdate}
+                    />
+                  )}
+                </>
+              )}
             </>
+          ) : (
+            <div className="text-white text-center py-8">
+              Hiện tại chưa có lịch chiếu cho phim này
+            </div>
           )}
         </div>
 
         {/* Booking Summary - Full Width at Bottom */}
-        {selectedTheater && selectedShowtime && selectedSeats.length > 0 && (
+        {selectedShowtimeId && selectedSeats.length > 0 && (
           <div className="mt-8">
             <BookingSummaryPanel
-              movieTitle={mockMovie.title}
-              theaterName={selectedTheaterData?.cinema?.name || ""}
-              showtime={`Phòng chiếu: ${selectedShowtime}`}
-              selectedSeats={selectedSeats}
+              movieTitle={movie.title}
+              theaterName={selectedTheater?.cinema?.name || ""}
+              showtime={`Phòng chiếu: ${selectedTheater?.name || ""}`}
+              selectedSeats={selectedSeats.map((seatId) => {
+                const seat = seats.find((s) => s.id === seatId);
+                return seat?.seatNumber || "";
+              })}
               totalPrice={calculateTotalPrice()}
               onBooking={handleBooking}
             />

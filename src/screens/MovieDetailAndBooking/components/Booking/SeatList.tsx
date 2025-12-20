@@ -3,16 +3,10 @@
 
 import type { SeatResponseDto } from "../../../../types";
 
-type SeatWithStatus = SeatResponseDto & {
-  row: string;
-  number: number;
-  status: "available" | "selected" | "booked";
-};
-
 interface SeatListProps {
-  seats: SeatWithStatus[];
-  selectedSeats: string[];
-  onSelectSeat: (seatId: string) => void;
+  seats: SeatResponseDto[];
+  selectedSeats: number[];
+  onSelectSeat: (seatId: number) => void;
   theaterName: string;
 }
 
@@ -22,20 +16,30 @@ const SeatList = ({
   onSelectSeat,
   theaterName,
 }: SeatListProps) => {
+  // Extract row and number from seatNumber (e.g., "A1" -> row: "A", number: 1)
+  const seatsWithRowNumber = seats.map((seat) => {
+    const match = seat.seatNumber.match(/^([A-Z]+)(\d+)$/);
+    return {
+      ...seat,
+      row: match ? match[1] : "",
+      number: match ? parseInt(match[2]) : 0,
+    };
+  });
+
   // Group seats by row
-  const seatsByRow = seats.reduce((acc, seat) => {
+  const seatsByRow = seatsWithRowNumber.reduce((acc, seat) => {
     if (!acc[seat.row]) acc[seat.row] = [];
     acc[seat.row].push(seat);
     return acc;
-  }, {} as Record<string, SeatWithStatus[]>);
+  }, {} as Record<string, typeof seatsWithRowNumber>);
 
   const rows = Object.keys(seatsByRow).sort();
 
-  const getSeatClass = (seat: SeatWithStatus) => {
-    if (seat.status === "booked") {
+  const getSeatClass = (seat: (typeof seatsWithRowNumber)[0]) => {
+    if (seat.isReserved) {
       return "bg-gray-500 cursor-not-allowed text-white";
     }
-    if (selectedSeats.includes(seat.seatNumber)) {
+    if (selectedSeats.includes(seat.id)) {
       return "bg-brand-yellow-dark text-black font-bold";
     }
     return "bg-white text-black hover:bg-gray-200";
@@ -71,16 +75,13 @@ const SeatList = ({
               {seatsByRow[row].map((seat) => (
                 <button
                   key={seat.id}
-                  onClick={() =>
-                    seat.status !== "booked" && onSelectSeat(seat.seatNumber)
-                  }
-                  disabled={seat.status === "booked"}
+                  onClick={() => !seat.isReserved && onSelectSeat(seat.id)}
+                  disabled={seat.isReserved}
                   className={`w-10 h-10 rounded text-xs font-semibold transition ${getSeatClass(
                     seat
                   )}`}
                 >
-                  {seat.row}
-                  {seat.number}
+                  {seat.seatNumber}
                 </button>
               ))}
             </div>

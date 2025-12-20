@@ -1,11 +1,13 @@
 // Các nút lịch chiếu, chỉ cho phép chọn 1 nút cùng 1 lúc: nút có ngày chiếu + thứ
 
-import type { ShowtimeDate } from "../../../../types";
-
 interface MovieShowtimesProps {
-  dates: ShowtimeDate[];
+  dates: {
+    date: string;
+    dayOfWeek: string;
+    isoDate: string;
+  }[];
   selectedDate: string;
-  onSelectDate: (date: string) => void;
+  onSelectDate: (isoDate: string) => void;
 }
 
 const MovieShowtimes = ({
@@ -22,10 +24,10 @@ const MovieShowtimes = ({
       <div className="flex flex-wrap justify-center gap-4">
         {dates.map((dateItem) => (
           <button
-            key={dateItem.date}
-            onClick={() => onSelectDate(dateItem.date)}
+            key={dateItem.isoDate}
+            onClick={() => onSelectDate(dateItem.isoDate)}
             className={`px-6 py-3 rounded-lg font-bold transition ${
-              selectedDate === dateItem.date
+              selectedDate === dateItem.isoDate
                 ? "bg-brand-yellow-dark text-black"
                 : "bg-white/10 text-white border-2 border-white/30 hover:bg-white/20"
             }`}

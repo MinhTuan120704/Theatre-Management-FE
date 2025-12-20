@@ -7,17 +7,18 @@ import { useState } from "react";
 import type { RoomResponseDto } from "../../../../types";
 
 interface TheaterListProps {
-  theaters: (RoomResponseDto & { showtimes: string[] })[];
+  theaters: (RoomResponseDto & {
+    showtimes: string[];
+    showtimeIds?: number[];
+  })[];
   selectedTheater: number | null;
-  selectedShowtime: string | null;
   onSelectTheater: (theaterId: number) => void;
-  onSelectShowtime: (showtime: string) => void;
+  onSelectShowtime: (theaterId: number, showtimeIndex: number) => void;
 }
 
 const TheaterList = ({
   theaters,
   selectedTheater,
-  selectedShowtime,
   onSelectTheater,
   onSelectShowtime,
 }: TheaterListProps) => {
@@ -76,15 +77,11 @@ const TheaterList = ({
 
           {/* Showtimes */}
           <div className="flex flex-wrap gap-3">
-            {selectedTheaterData.showtimes.map((time) => (
+            {selectedTheaterData.showtimes.map((time, index) => (
               <button
-                key={time}
-                onClick={() => onSelectShowtime(time)}
-                className={`px-6 py-2 rounded-lg font-bold transition ${
-                  selectedShowtime === time
-                    ? "bg-brand-yellow-dark text-black"
-                    : "bg-white/10 border-2 border-white/30 text-white hover:bg-white/20"
-                }`}
+                key={index}
+                onClick={() => onSelectShowtime(selectedTheaterData.id, index)}
+                className="px-6 py-2 rounded-lg font-bold bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 transition"
               >
                 {time}
               </button>

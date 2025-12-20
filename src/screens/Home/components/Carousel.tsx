@@ -1,71 +1,44 @@
 // Carousel gồm các banner movie với id của movie tương ứng, tự động scroll sau vài giây, có thể ấn vào để chuyển sang trang MovieDetailAndBooking tương ứng
 
-import { useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MovieService } from "../../../services";
 import type { MovieResponseDto } from "../../../types";
-
-// Mock data - TODO: Replace with API data
-// Banner chứa thông tin phim để display
-const mockBanners: (MovieResponseDto & { bannerImage?: string })[] = [
-  {
-    id: 1,
-    title: "PHIM COMING SOON - Dune: Part Three",
-    genres: ["Khoa học viễn tưởng", "Phiêu lưu"],
-    description: "Phần tiếp theo của series Dune đình đám.",
-    director: "Denis Villeneuve",
-    actors: ["Timothée Chalamet", "Zendaya"],
-    country: "Mỹ",
-    durationMinutes: 165,
-    releaseDate: new Date("2025-03-15"),
-    posterUrl:
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    bannerImage:
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200&h=500&fit=crop",
-  },
-  {
-    id: 2,
-    title: "PHIM HOT NHẤT - Avatar: The Way of Water",
-    genres: ["Hành động", "Khoa học viễn tưởng"],
-    description: "Phần tiếp theo của bộ phim Avatar huyền thoại.",
-    director: "James Cameron",
-    actors: ["Sam Worthington", "Zoe Saldana"],
-    country: "Mỹ",
-    durationMinutes: 192,
-    releaseDate: new Date("2024-12-10"),
-    posterUrl:
-      "https://images.unsplash.com/photo-1594908900066-3f47337549d8?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    bannerImage:
-      "https://images.unsplash.com/photo-1594908900066-3f47337549d8?w=1200&h=500&fit=crop",
-  },
-  {
-    id: 3,
-    title: "PHIM MỚI RA MẮT - Fast & Furious 11",
-    genres: ["Hành động", "Phiêu lưu"],
-    description: "Cuộc đua tốc độ mới với nhiều màn hành động nóng bỏng.",
-    director: "Justin Lin",
-    actors: ["Vin Diesel", "Michelle Rodriguez"],
-    country: "Mỹ",
-    durationMinutes: 150,
-    releaseDate: new Date("2024-12-15"),
-    posterUrl:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    bannerImage:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&h=500&fit=crop",
-  },
-];
 
 const Carousel = () => {
   const navigate = useNavigate();
+  const [movies, setMovies] = useState<MovieResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "center" },
     [Autoplay({ delay: 4000, stopOnInteraction: false })]
   );
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        const response = await MovieService.getAll({ limit: 5 });
+        // Get only movies that are currently showing
+        const now = new Date();
+        const nowShowing = response.movies.filter(
+          (movie) => new Date(movie.releaseDate) <= now
+        );
+        setMovies(nowShowing.slice(0, 5));
+      } catch (error) {
+        console.error("Error fetching movies for carousel:", error);
+        setMovies([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -79,27 +52,53 @@ const Carousel = () => {
     navigate(`/movie/${movieId}`);
   };
 
+  if (loading) {
+    return (
+      <div className="relative w-full h-[500px] bg-gradient-to-r from-purple-900 to-blue-900 animate-pulse">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white text-xl">Đang tải...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (movies.length === 0) {
+    return (
+      <div className="relative w-full h-[500px] bg-gradient-to-r from-purple-900 to-blue-900">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white text-xl">Không có phim để hiển thị</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {mockBanners.map((banner) => (
+          {movies.map((movie) => (
             <div
-              key={banner.id}
+              key={movie.id}
               className="flex-[0_0_100%] min-w-0 relative cursor-pointer"
-              onClick={() => handleBannerClick(banner.id)}
+              onClick={() => handleBannerClick(movie.id)}
             >
               <div className="relative h-[500px] bg-gradient-to-r from-purple-900 to-blue-900">
                 <img
-                  src={banner.bannerImage || banner.posterUrl}
-                  alt={banner.title}
+                  src={movie.posterUrl}
+                  alt={movie.title}
                   className="w-full h-full object-cover opacity-80"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
                   <div className="container mx-auto px-4 pb-12">
                     <h2 className="text-5xl font-bold text-white mb-4">
-                      {banner.title}
+                      {movie.title}
                     </h2>
+                    <p className="text-white text-lg mb-2">
+                      {movie.genres.join(" • ")}
+                    </p>
+                    <p className="text-white/80 mb-4 max-w-2xl line-clamp-2">
+                      {movie.description}
+                    </p>
                     <button className="px-8 py-3 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-500 transition">
                       XEM THÊM
                     </button>
