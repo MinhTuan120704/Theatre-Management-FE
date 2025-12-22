@@ -4,20 +4,23 @@
 
 import { MapPin } from "lucide-react";
 import { useState } from "react";
-import type { Theater } from "../../../../types";
+import type { RoomResponseDto } from "../../../../types";
 
 interface TheaterListProps {
-  theaters: Theater[];
+  theaters: (RoomResponseDto & {
+    showtimes: string[];
+    showtimeIds?: number[];
+  })[];
   selectedTheater: number | null;
-  selectedShowtime: string | null;
+  selectedShowtimeId?: number | null;
   onSelectTheater: (theaterId: number) => void;
-  onSelectShowtime: (showtime: string) => void;
+  onSelectShowtime: (theaterId: number, showtimeIndex: number) => void;
 }
 
 const TheaterList = ({
   theaters,
   selectedTheater,
-  selectedShowtime,
+  selectedShowtimeId,
   onSelectTheater,
   onSelectShowtime,
 }: TheaterListProps) => {
@@ -52,9 +55,11 @@ const TheaterList = ({
                   className="w-full text-left px-4 py-3 hover:bg-gray-100 transition first:rounded-t-lg last:rounded-b-lg"
                 >
                   <div className="font-semibold text-gray-900">
-                    {theater.name}
+                    {theater.cinema?.name} - {theater.name}
                   </div>
-                  <div className="text-xs text-gray-600">{theater.address}</div>
+                  <div className="text-xs text-gray-600">
+                    {theater.cinema?.address}
+                  </div>
                 </button>
               ))}
             </div>
@@ -66,25 +71,34 @@ const TheaterList = ({
       {selectedTheaterData && (
         <div className="bg-brand-purple-2 rounded-lg p-6 space-y-4">
           <h3 className="text-xl font-bold text-white">
-            {selectedTheaterData.name}
+            {selectedTheaterData.cinema?.name} - {selectedTheaterData.name}
           </h3>
-          <p className="text-white text-sm">{selectedTheaterData.address}</p>
+          <p className="text-white text-sm">
+            {selectedTheaterData.cinema?.address}
+          </p>
 
           {/* Showtimes */}
           <div className="flex flex-wrap gap-3">
-            {selectedTheaterData.showtimes.map((time) => (
-              <button
-                key={time}
-                onClick={() => onSelectShowtime(time)}
-                className={`px-6 py-2 rounded-lg font-bold transition ${
-                  selectedShowtime === time
-                    ? "bg-brand-yellow-dark text-black"
-                    : "bg-white/10 border-2 border-white/30 text-white hover:bg-white/20"
-                }`}
-              >
-                {time}
-              </button>
-            ))}
+            {selectedTheaterData.showtimes.map((time, index) => {
+              const showtimeId = selectedTheaterData.showtimeIds?.[index];
+              const isSelected = showtimeId === selectedShowtimeId;
+
+              return (
+                <button
+                  key={index}
+                  onClick={() =>
+                    onSelectShowtime(selectedTheaterData.id, index)
+                  }
+                  className={`px-6 py-2 rounded-lg font-bold transition ${
+                    isSelected
+                      ? "bg-brand-yellow-dark text-black"
+                      : "bg-white/10 border-2 border-white/30 text-white hover:bg-white/20"
+                  }`}
+                >
+                  {time}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

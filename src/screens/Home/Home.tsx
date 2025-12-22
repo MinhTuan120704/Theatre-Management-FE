@@ -1,89 +1,23 @@
 // Gồm các component sau: Carousel, QuickBooking, một list các MovieCard được sắp xếp theo chiều ngang và có thể swipe theo chiều ngang để xem thêm.
 
-import { useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Carousel from "./components/Carousel";
 import QuickBooking from "./components/QuickBooking";
 import MovieCard from "./components/MovieCard";
-
-// Mock data - TODO: Replace with API
-const mockNowShowingMovies = [
-  {
-    id: 1,
-    title: "Cục Vàng Của Ngoại",
-    poster:
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 8.5,
-  },
-  {
-    id: 2,
-    title: "Avatar: The Way of Water",
-    poster:
-      "https://images.unsplash.com/photo-1594908900066-3f47337549d8?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 9.0,
-  },
-  {
-    id: 3,
-    title: "Fast & Furious 11",
-    poster:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 7.8,
-  },
-  {
-    id: 4,
-    title: "The Marvels",
-    poster:
-      "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 8.2,
-  },
-  {
-    id: 5,
-    title: "Wonka",
-    poster:
-      "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 8.7,
-  },
-];
-
-const mockComingSoonMovies = [
-  {
-    id: 6,
-    title: "Dune: Part Three",
-    poster:
-      "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 9.2,
-  },
-  {
-    id: 7,
-    title: "Spider-Man: Beyond",
-    poster:
-      "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 8.9,
-  },
-  {
-    id: 8,
-    title: "The Batman 2",
-    poster:
-      "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?w=400&h=600&fit=crop",
-    trailerUrl: "https://youtube.com",
-    rating: 9.1,
-  },
-];
+import { MovieService } from "../../services";
+import { useCinema } from "../../contexts";
+import type { MovieResponseDto } from "../../types";
 
 const MovieSection = ({
   title,
   movies,
+  loading,
 }: {
   title: string;
-  movies: typeof mockNowShowingMovies;
+  movies: MovieResponseDto[];
+  loading: boolean;
 }) => {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
@@ -98,6 +32,30 @@ const MovieSection = ({
   const scrollNext = useCallback(() => {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
+
+  if (loading) {
+    return (
+      <div className="mb-12">
+        <h2 className="text-3xl font-bold text-white mb-6">{title}</h2>
+        <div className="flex gap-6 overflow-hidden">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 animate-pulse"
+              style={{ width: "280px" }}
+            >
+              <div className="bg-gray-700 h-[56px] rounded mb-3" />
+              <div className="bg-gray-700 h-[400px] rounded mb-3" />
+              <div className="flex gap-2">
+                <div className="flex-1 bg-gray-700 h-10 rounded" />
+                <div className="flex-1 bg-gray-700 h-10 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-12">
@@ -121,9 +79,13 @@ const MovieSection = ({
 
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex gap-6">
-          {movies.map((movie) => (
-            <MovieCard key={movie.id} {...movie} />
-          ))}
+          {movies.length > 0 ? (
+            movies.map((movie) => <MovieCard key={movie.id} {...movie} />)
+          ) : (
+            <p className="text-white text-center w-full">
+              Không có phim nào để hiển thị
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -131,6 +93,56 @@ const MovieSection = ({
 };
 
 const Home = () => {
+  const { selectedCinema } = useCinema();
+  const [nowShowingMovies, setNowShowingMovies] = useState<MovieResponseDto[]>(
+    []
+  );
+  const [comingSoonMovies, setComingSoonMovies] = useState<MovieResponseDto[]>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        let allMovies: MovieResponseDto[];
+        
+        // If cinema is selected, fetch movies for that cinema
+        if (selectedCinema) {
+          const response = await MovieService.getByCinemaId(selectedCinema.id);
+          allMovies = response.movies;
+        } else {
+          // Otherwise fetch all movies
+          const response = await MovieService.getAll({ limit: 50 });
+          allMovies = response.movies;
+        }
+
+        // Separate movies by release date
+        const now = new Date();
+        const nowShowing = allMovies.filter(
+          (movie) => new Date(movie.releaseDate) <= now
+        );
+        const comingSoon = allMovies.filter(
+          (movie) => new Date(movie.releaseDate) > now
+        );
+
+        setNowShowingMovies(nowShowing);
+        setComingSoonMovies(comingSoon);
+      } catch (err) {
+        console.error("Error fetching movies:", err);
+        setError("Không thể tải danh sách phim. Vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, [selectedCinema]);
+
   return (
     <div className="bg-gradient-to-b from-bg-dark to-bg-light min-h-screen">
       {/* Hero Carousel */}
@@ -141,10 +153,27 @@ const Home = () => {
         <QuickBooking />
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="bg-red-500/20 border border-red-500 text-white px-4 py-3 rounded">
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* Movie Sections */}
       <div className="container mx-auto px-4 py-12">
-        <MovieSection title="PHIM ĐANG CHIẾU" movies={mockNowShowingMovies} />
-        <MovieSection title="PHIM SẮP CHIẾU" movies={mockComingSoonMovies} />
+        <MovieSection
+          title="PHIM ĐANG CHIẾU"
+          movies={nowShowingMovies}
+          loading={loading}
+        />
+        <MovieSection
+          title="PHIM SẮP CHIẾU"
+          movies={comingSoonMovies}
+          loading={loading}
+        />
       </div>
     </div>
   );

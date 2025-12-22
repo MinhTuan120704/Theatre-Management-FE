@@ -9,7 +9,7 @@
 // Nút đăng nhập để chuyển sang trang đăng nhập (nếu đã đăng nhập thì hiển thị tên người dùng và có thể chuyển sang trang người dùng)
 // Chọn ngôn ngữ
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -20,16 +20,46 @@ import {
   Film,
   Menu,
   X,
+  ChevronDown,
 } from "lucide-react";
+import { CinemaService } from "../services";
+import { useCinema } from "../contexts";
 
 const Header = () => {
   const navigate = useNavigate();
-  const [selectedTheater] = useState<string>("");
+  const { selectedCinema, setSelectedCinema, allCinemas, setAllCinemas } =
+    useCinema();
+  const [isTheaterDropdownOpen, setIsTheaterDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [language] = useState("VN");
   const [isLoggedIn] = useState(false); // TODO: Get from auth context
   const [userName] = useState(""); // TODO: Get from auth context
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loadingCinemas, setLoadingCinemas] = useState(false);
+
+  // Fetch cinemas on mount
+  useEffect(() => {
+    const fetchCinemas = async () => {
+      try {
+        setLoadingCinemas(true);
+        const response = await CinemaService.getAll({ limit: 100 });
+        setAllCinemas(response.cinemas);
+
+        // Auto-select first cinema if none selected
+        if (!selectedCinema && response.cinemas.length > 0) {
+          setSelectedCinema(response.cinemas[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching cinemas:", error);
+      } finally {
+        setLoadingCinemas(false);
+      }
+    };
+
+    if (allCinemas.length === 0) {
+      fetchCinemas();
+    }
+  }, [allCinemas.length, selectedCinema, setAllCinemas, setSelectedCinema]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +74,60 @@ const Header = () => {
         <div className="hidden md:flex items-center justify-between py-3 border-b border-white/10">
           {/* Left Section - Theater & Schedule */}
           <div className="flex items-center gap-2 lg:gap-4">
-            <button className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm">
-              <MapPin size={18} />
-              <span className="hidden lg:inline">
-                {selectedTheater || "Chọn rạp"}
-              </span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsTheaterDropdownOpen(!isTheaterDropdownOpen)}
+                className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm"
+                disabled={loadingCinemas}
+              >
+                <MapPin size={18} />
+                <span className="hidden lg:inline max-w-[150px] truncate">
+                  {loadingCinemas
+                    ? "Đang tải..."
+                    : selectedCinema?.name || "Chọn rạp"}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${
+                    isTheaterDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Theater Dropdown */}
+              {isTheaterDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+                  {allCinemas.map((cinema) => (
+                    <button
+                      key={cinema.id}
+                      onClick={() => {
+                        setSelectedCinema(cinema);
+                        setIsTheaterDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-100 transition first:rounded-t-lg last:rounded-b-lg ${
+                        selectedCinema?.id === cinema.id
+                          ? "bg-yellow-50 border-l-4 border-brand-yellow-dark"
+                          : ""
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900">
+                        {cinema.name}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {cinema.address}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <button
-              className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm"
-              disabled={!selectedTheater}
+              className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!selectedCinema}
+              onClick={() =>
+                selectedCinema && navigate(`/schedule/${selectedCinema.id}`)
+              }
             >
               <Calendar size={18} />
               <span className="hidden lg:inline">Lịch chiếu</span>
@@ -181,13 +255,37 @@ const Header = () => {
 
             {/* Mobile Theater & Schedule */}
             <div className="md:hidden flex gap-2">
-              <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm">
-                <MapPin size={18} />
-                <span>{selectedTheater || "Chọn rạp"}</span>
-              </button>
+              <div className="relative flex-1">
+                <button
+                  onClick={() =>
+                    setIsTheaterDropdownOpen(!isTheaterDropdownOpen)
+                  }
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm"
+                  disabled={loadingCinemas}
+                >
+                  <MapPin size={18} />
+                  <span className="truncate max-w-[100px]">
+                    {loadingCinemas
+                      ? "Đang tải..."
+                      : selectedCinema?.name || "Chọn rạp"}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${
+                      isTheaterDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
               <button
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm"
-                disabled={!selectedTheater}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm disabled:opacity-50"
+                disabled={!selectedCinema}
+                onClick={() => {
+                  if (selectedCinema) {
+                    navigate(`/schedule/${selectedCinema.id}`);
+                    setIsMobileMenuOpen(false);
+                  }
+                }}
               >
                 <Calendar size={18} />
                 <span>Lịch chiếu</span>
