@@ -79,6 +79,8 @@ export const ENDPOINTS = {
   SHOWTIMES: {
     GET_ALL: "/showtimes",
     GET_BY_ID: (id: number) => `/showtimes/${id}`,
+    SEARCH_BY_MOVIE_ID: (movieId: number) => `/showtimes/searchByMovieId/${movieId}`,
+    GET_BY_CINEMA_MOVIE_DATE: (cinemaId: number, movieId: number, date: string) => `/showtimes/cinema/${cinemaId}/movie/${movieId}/date/${date}`,
     CREATE: "/showtimes",
     UPDATE: (id: number) => `/showtimes/${id}`,
     DELETE: (id: number) => `/showtimes/${id}`,

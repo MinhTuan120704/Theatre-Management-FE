@@ -7,6 +7,7 @@ import type {
   ShowtimeUpdateDto,
   PaginatedShowtimesResponse,
   ApiSuccess,
+  ShowtimeSearchResponse,
 } from "../types";
 
 export interface GetAllShowtimesParams {
@@ -63,6 +64,30 @@ class ShowtimeService {
     const response: AxiosResponse<ApiSuccess> = await axiosInstance.delete(
       ENDPOINTS.SHOWTIMES.DELETE(id)
     );
+    return response.data;
+  }
+
+  /**
+   * Get showtimes by movie ID for the next 3 days
+   */
+  async searchByMovieId(movieId: number): Promise<ShowtimeSearchResponse> {
+    const response: AxiosResponse<ShowtimeSearchResponse> =
+      await axiosInstance.get(ENDPOINTS.SHOWTIMES.SEARCH_BY_MOVIE_ID(movieId));
+    return response.data;
+  }
+
+  /**
+   * Get showtimes by cinema, movie, and date
+   */
+  async getByCinemaMovieDate(
+    cinemaId: number,
+    movieId: number,
+    date: string
+  ): Promise<ShowtimeSearchResponse> {
+    const response: AxiosResponse<ShowtimeSearchResponse> =
+      await axiosInstance.get(
+        ENDPOINTS.SHOWTIMES.GET_BY_CINEMA_MOVIE_DATE(cinemaId, movieId, date)
+      );
     return response.data;
   }
 }
