@@ -2,7 +2,7 @@
 // Nửa trên gồm các component trong Movie Detail được sắp xếp theo layout dọc: Movie Info, Rating, Bình luận.
 // Nửa dưới gồm các component trong Booking: MovieShowtimes (lấy theo id của phim), TheaterList (lấy theo id phim), SeatList (theo đúng id của rạp và giờ chiếu được chọn ở TheaterList), FoodDrinkSelection, BookingSummaryPanel (tổng hợp các trường cần thiết sau khi chọn từ các component trên).
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import MovieInfo from "./components/MovieDetail/MovieInfo";
 import Rating from "./components/MovieDetail/Rating";
@@ -71,91 +71,82 @@ const MovieDetailAndBooking = () => {
     Record<number, number>
   >({});
 
+  // Refs to track if data has been fetched for current movieId
+  const fetchedMovieIdRef = useRef<number | null>(null);
+  const fetchedProductsRef = useRef(false);
+
   // Fetch movie details, reviews, and showtimes when movieId changes
   useEffect(() => {
     if (!movieId) return;
+    
+    // Skip if already fetched for this movieId
+    if (fetchedMovieIdRef.current === Number(movieId)) return;
 
     const fetchMovieData = async () => {
-      // Fetch movie details
-      if (!movie || movie.id !== Number(movieId)) {
-        try {
-          setLoading((prev) => ({ ...prev, movie: true }));
-          const movieResponse = await MovieService.getById(Number(movieId));
-          setMovie(movieResponse);
-        } catch (err) {
-          console.error("Error fetching movie:", err);
-          setError("Không thể tải thông tin phim");
-        } finally {
-          setLoading((prev) => ({ ...prev, movie: false }));
+      try {
+        setLoading((prev) => ({ ...prev, movie: true, reviews: true, showtimes: true }));
+        
+        // Fetch all data in parallel
+        const [movieResponse, reviewResponse, showtimeResponse] = await Promise.all([
+          MovieService.getById(Number(movieId)),
+          ReviewService.getAll({ limit: 100 }),
+          ShowtimeService.searchByMovieId(Number(movieId)),
+        ]);
+
+        // Set movie
+        setMovie(movieResponse);
+
+        // Filter and set reviews
+        const movieReviews = reviewResponse.reviews.filter(
+          (review) => review.movieId === Number(movieId)
+        );
+        setReviews(movieReviews);
+
+        // Process and set showtimes
+        setShowtimeSearchData(showtimeResponse.showtimes);
+        const showtimeList = showtimeResponse.showtimes.map((st) => ({
+          id: st.id,
+          showTime: new Date(st.showTime),
+          price: parseFloat(st.price),
+          movieId: st.movieId,
+          roomId: st.roomId,
+        }));
+        setShowtimes(showtimeList);
+
+        // Set default date if coming directly (no URL params)
+        if (!urlDate && showtimeResponse.showtimes.length > 0) {
+          const firstDate = new Date(showtimeResponse.showtimes[0].showTime)
+            .toISOString()
+            .split("T")[0];
+          setSelectedDate(firstDate);
         }
-      }
-
-      // Fetch reviews
-      if (reviews.length === 0 || reviews[0]?.movieId !== Number(movieId)) {
-        try {
-          setLoading((prev) => ({ ...prev, reviews: true }));
-          const reviewResponse = await ReviewService.getAll({ limit: 100 });
-          const movieReviews = reviewResponse.reviews.filter(
-            (review) => review.movieId === Number(movieId)
-          );
-          setReviews(movieReviews);
-        } catch (err) {
-          console.error("Error fetching reviews:", err);
-        } finally {
-          setLoading((prev) => ({ ...prev, reviews: false }));
-        }
-      }
-
-      // Fetch showtimes
-      if (showtimes.length === 0 || showtimes[0]?.movieId !== Number(movieId)) {
-        try {
-          setLoading((prev) => ({ ...prev, showtimes: true }));
-          const showtimeResponse = await ShowtimeService.searchByMovieId(
-            Number(movieId)
-          );
-          setShowtimeSearchData(showtimeResponse.showtimes);
-
-          const showtimeList = showtimeResponse.showtimes.map((st) => ({
-            id: st.id,
-            showTime: new Date(st.showTime),
-            price: parseFloat(st.price),
-            movieId: st.movieId,
-            roomId: st.roomId,
-          }));
-          setShowtimes(showtimeList);
-
-          // Set default date to first available date
-          if (showtimeResponse.showtimes.length > 0) {
-            const firstDate = new Date(showtimeResponse.showtimes[0].showTime)
-              .toISOString()
-              .split("T")[0];
-            setSelectedDate(firstDate);
-          }
-        } catch (err) {
-          console.error("Error fetching showtimes:", err);
-          setError("Không thể tải lịch chiếu");
-        } finally {
-          setLoading((prev) => ({ ...prev, showtimes: false }));
-        }
+        
+        // Mark as fetched
+        fetchedMovieIdRef.current = Number(movieId);
+      } catch (err) {
+        console.error("Error fetching movie data:", err);
+        setError("Không thể tải thông tin phim");
+      } finally {
+        setLoading((prev) => ({ ...prev, movie: false, reviews: false, showtimes: false }));
       }
     };
 
     fetchMovieData();
-  }, [movieId]);
+  }, [movieId, urlDate]);
 
-  // Fetch products
+  // Fetch products (only once)
   useEffect(() => {
     const fetchProducts = async () => {
-      // Prevent redundant fetch if products are already loaded
-      if (products.length > 0) return;
+      // Skip if already fetched
+      if (fetchedProductsRef.current) return;
 
       try {
         setLoading((prev) => ({ ...prev, products: true }));
         const response = await ProductService.getAll({ limit: 50 });
         setProducts(response.products);
+        fetchedProductsRef.current = true;
       } catch (err) {
         console.error("Error fetching products:", err);
-        // Don't show error for products
       } finally {
         setLoading((prev) => ({ ...prev, products: false }));
       }
@@ -226,12 +217,17 @@ const MovieDetailAndBooking = () => {
           (st) => st.roomId === firstRoomId
         );
 
-        // Only update if selection has changed to prevent unnecessary re-renders
-        if (selectedTheaterId !== firstRoomId) {
-          setSelectedTheaterId(firstRoomId);
-        }
-        if (firstShowtime && selectedShowtimeId !== firstShowtime.id) {
-          setSelectedShowtimeId(firstShowtime.id);
+        // Update selections using callback to get latest state
+        setSelectedTheaterId((prev) => {
+          if (prev !== firstRoomId) return firstRoomId;
+          return prev;
+        });
+        
+        if (firstShowtime) {
+          setSelectedShowtimeId((prev) => {
+            if (prev !== firstShowtime.id) return firstShowtime.id;
+            return prev;
+          });
         }
       }
     }
