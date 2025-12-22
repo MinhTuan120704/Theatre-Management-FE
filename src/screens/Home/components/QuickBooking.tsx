@@ -12,6 +12,7 @@ import type {
   CinemaResponseDto,
   MovieResponseDto,
   ShowtimeResponseDto,
+  ShowtimeSearchResponse,
 } from "../../../types";
 
 // Generate date options for next 7 days
@@ -39,6 +40,8 @@ const QuickBooking = () => {
   const [cinemas, setCinemas] = useState<CinemaResponseDto[]>([]);
   const [movies, setMovies] = useState<MovieResponseDto[]>([]);
   const [showtimes, setShowtimes] = useState<ShowtimeResponseDto[]>([]);
+  const [showtimeSearchResponse, setShowtimeSearchResponse] =
+    useState<ShowtimeSearchResponse | null>(null);
   const [dates] = useState(generateDates());
 
   const [selectedCinema, setSelectedCinema] = useState("");
@@ -96,28 +99,31 @@ const QuickBooking = () => {
     fetchMovies();
   }, [selectedCinema]);
 
-  // Fetch showtimes when movie and date are selected
+  // Fetch showtimes when movie is selected (for next 3 days)
   useEffect(() => {
-    if (!selectedMovie || !selectedDate) {
+    if (!selectedMovie) {
       setShowtimes([]);
+      setShowtimeSearchResponse(null);
       return;
     }
 
     const fetchShowtimes = async () => {
       try {
         setLoading((prev) => ({ ...prev, showtimes: true }));
-        const response = await ShowtimeService.getAll({ limit: 100 });
-        // Filter showtimes by movie and date
-        const filtered = response.showtimes.filter((showtime) => {
-          const showtimeDate = new Date(showtime.showTime)
-            .toISOString()
-            .split("T")[0];
-          return (
-            showtime.movieId === Number(selectedMovie) &&
-            showtimeDate === selectedDate
-          );
-        });
-        setShowtimes(filtered);
+        const response = await ShowtimeService.searchByMovieId(
+          Number(selectedMovie)
+        );
+        setShowtimeSearchResponse(response);
+
+        // Convert to ShowtimeResponseDto format for compatibility
+        const showtimeList = response.showtimes.map((st) => ({
+          id: st.id,
+          showTime: new Date(st.showTime),
+          price: parseFloat(st.price),
+          movieId: st.movieId,
+          roomId: st.roomId,
+        }));
+        setShowtimes(showtimeList);
       } catch (error) {
         console.error("Error fetching showtimes:", error);
       } finally {
@@ -126,12 +132,53 @@ const QuickBooking = () => {
     };
 
     fetchShowtimes();
-  }, [selectedMovie, selectedDate]);
+  }, [selectedMovie]);
+
+  // Filter showtimes by cinema and date
+  const filteredShowtimes = showtimes.filter((showtime) => {
+    if (!selectedDate) return false;
+
+    const showtimeDate = new Date(showtime.showTime)
+      .toISOString()
+      .split("T")[0];
+
+    // Check if date matches
+    if (showtimeDate !== selectedDate) return false;
+
+    // Check if cinema matches (if cinema is selected)
+    if (selectedCinema && showtimeSearchResponse) {
+      const showtimeWithRoom = showtimeSearchResponse.showtimes.find(
+        (st) => st.id === showtime.id
+      );
+      if (
+        showtimeWithRoom &&
+        showtimeWithRoom.room.cinemaId !== Number(selectedCinema)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   const handleBooking = () => {
     if (selectedCinema && selectedMovie && selectedDate && selectedShowtime) {
-      // Navigate to movie detail page with showtime
-      navigate(`/movie/${selectedMovie}#booking`);
+      // Find the selected showtime to get room info
+      const selectedShowtimeData = showtimeSearchResponse?.showtimes.find(
+        (st) => st.id === Number(selectedShowtime)
+      );
+
+      // Navigate to movie detail page with booking params
+      const params = new URLSearchParams({
+        cinemaId: selectedCinema,
+        date: selectedDate,
+        showtimeId: selectedShowtime,
+        ...(selectedShowtimeData?.roomId && {
+          roomId: selectedShowtimeData.roomId.toString(),
+        }),
+      });
+
+      navigate(`/movie/${selectedMovie}?${params.toString()}#booking`);
     }
   };
 
@@ -239,7 +286,7 @@ const QuickBooking = () => {
             <option value="">
               {loading.showtimes ? "Đang tải..." : "Chọn giờ"}
             </option>
-            {showtimes.map((showtime) => (
+            {filteredShowtimes?.map((showtime) => (
               <option key={showtime.id} value={showtime.id}>
                 {new Date(showtime.showTime).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",

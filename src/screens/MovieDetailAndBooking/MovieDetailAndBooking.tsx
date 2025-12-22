@@ -3,7 +3,7 @@
 // Nửa dưới gồm các component trong Booking: MovieShowtimes (lấy theo id của phim), TheaterList (lấy theo id phim), SeatList (theo đúng id của rạp và giờ chiếu được chọn ở TheaterList), FoodDrinkSelection, BookingSummaryPanel (tổng hợp các trường cần thiết sau khi chọn từ các component trên).
 
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import MovieInfo from "./components/MovieDetail/MovieInfo";
 import Rating from "./components/MovieDetail/Rating";
 import Comment from "./components/MovieDetail/Comment";
@@ -25,11 +25,18 @@ import type {
   SeatResponseDto,
   ProductResponseDto,
   ShowtimeResponseDto,
+  ShowtimeWithRoomInfo,
 } from "../../types";
 
 const MovieDetailAndBooking = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get booking params from URL if coming from QuickBooking
+  const urlDate = searchParams.get("date");
+  const urlShowtimeId = searchParams.get("showtimeId");
+  const urlRoomId = searchParams.get("roomId");
 
   // Loading states
   const [loading, setLoading] = useState({
@@ -44,99 +51,104 @@ const MovieDetailAndBooking = () => {
   const [movie, setMovie] = useState<MovieResponseDto | null>(null);
   const [reviews, setReviews] = useState<ReviewResponseDto[]>([]);
   const [showtimes, setShowtimes] = useState<ShowtimeResponseDto[]>([]);
+  const [showtimeSearchData, setShowtimeSearchData] = useState<
+    ShowtimeWithRoomInfo[]
+  >([]);
   const [products, setProducts] = useState<ProductResponseDto[]>([]);
   const [seats, setSeats] = useState<SeatResponseDto[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Selection states
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  // Selection states - initialize with URL params if available
+  const [selectedDate, setSelectedDate] = useState<string>(urlDate || "");
+  const [selectedTheaterId, setSelectedTheaterId] = useState<number | null>(
+    urlRoomId ? Number(urlRoomId) : null
+  );
   const [selectedShowtimeId, setSelectedShowtimeId] = useState<number | null>(
-    null
+    urlShowtimeId ? Number(urlShowtimeId) : null
   );
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [selectedFoodDrinks, setSelectedFoodDrinks] = useState<
     Record<number, number>
   >({});
 
-  // Fetch movie details
+  // Fetch movie details, reviews, and showtimes when movieId changes
   useEffect(() => {
-    const fetchMovieDetails = async () => {
-      if (!movieId) return;
+    if (!movieId) return;
 
-      try {
-        setLoading((prev) => ({ ...prev, movie: true }));
-        const response = await MovieService.getById(Number(movieId));
-        setMovie(response);
-      } catch (err) {
-        console.error("Error fetching movie:", err);
-        setError("Không thể tải thông tin phim");
-      } finally {
-        setLoading((prev) => ({ ...prev, movie: false }));
-      }
-    };
-
-    fetchMovieDetails();
-  }, [movieId]);
-
-  // Fetch reviews
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (!movieId) return;
-
-      try {
-        setLoading((prev) => ({ ...prev, reviews: true }));
-        const response = await ReviewService.getAll({ limit: 100 });
-        // Filter reviews by movieId on client side
-        const movieReviews = response.reviews.filter(
-          (review) => review.movieId === Number(movieId)
-        );
-        setReviews(movieReviews);
-      } catch (err) {
-        console.error("Error fetching reviews:", err);
-        // Don't show error for reviews, just leave it empty
-      } finally {
-        setLoading((prev) => ({ ...prev, reviews: false }));
-      }
-    };
-
-    fetchReviews();
-  }, [movieId]);
-
-  // Fetch showtimes for the movie
-  useEffect(() => {
-    const fetchShowtimes = async () => {
-      if (!movieId) return;
-
-      try {
-        setLoading((prev) => ({ ...prev, showtimes: true }));
-        const response = await ShowtimeService.getAll({ limit: 100 });
-        // Filter showtimes by movieId on client side
-        const movieShowtimes = response.showtimes.filter(
-          (showtime) => showtime.movieId === Number(movieId)
-        );
-        setShowtimes(movieShowtimes);
-
-        // Set default date to first available date
-        if (response.showtimes.length > 0) {
-          const firstDate = new Date(response.showtimes[0].showTime)
-            .toISOString()
-            .split("T")[0];
-          setSelectedDate(firstDate);
+    const fetchMovieData = async () => {
+      // Fetch movie details
+      if (!movie || movie.id !== Number(movieId)) {
+        try {
+          setLoading((prev) => ({ ...prev, movie: true }));
+          const movieResponse = await MovieService.getById(Number(movieId));
+          setMovie(movieResponse);
+        } catch (err) {
+          console.error("Error fetching movie:", err);
+          setError("Không thể tải thông tin phim");
+        } finally {
+          setLoading((prev) => ({ ...prev, movie: false }));
         }
-      } catch (err) {
-        console.error("Error fetching showtimes:", err);
-        setError("Không thể tải lịch chiếu");
-      } finally {
-        setLoading((prev) => ({ ...prev, showtimes: false }));
+      }
+
+      // Fetch reviews
+      if (reviews.length === 0 || reviews[0]?.movieId !== Number(movieId)) {
+        try {
+          setLoading((prev) => ({ ...prev, reviews: true }));
+          const reviewResponse = await ReviewService.getAll({ limit: 100 });
+          const movieReviews = reviewResponse.reviews.filter(
+            (review) => review.movieId === Number(movieId)
+          );
+          setReviews(movieReviews);
+        } catch (err) {
+          console.error("Error fetching reviews:", err);
+        } finally {
+          setLoading((prev) => ({ ...prev, reviews: false }));
+        }
+      }
+
+      // Fetch showtimes
+      if (showtimes.length === 0 || showtimes[0]?.movieId !== Number(movieId)) {
+        try {
+          setLoading((prev) => ({ ...prev, showtimes: true }));
+          const showtimeResponse = await ShowtimeService.searchByMovieId(
+            Number(movieId)
+          );
+          setShowtimeSearchData(showtimeResponse.showtimes);
+
+          const showtimeList = showtimeResponse.showtimes.map((st) => ({
+            id: st.id,
+            showTime: new Date(st.showTime),
+            price: parseFloat(st.price),
+            movieId: st.movieId,
+            roomId: st.roomId,
+          }));
+          setShowtimes(showtimeList);
+
+          // Set default date to first available date
+          if (showtimeResponse.showtimes.length > 0) {
+            const firstDate = new Date(showtimeResponse.showtimes[0].showTime)
+              .toISOString()
+              .split("T")[0];
+            setSelectedDate(firstDate);
+          }
+        } catch (err) {
+          console.error("Error fetching showtimes:", err);
+          setError("Không thể tải lịch chiếu");
+        } finally {
+          setLoading((prev) => ({ ...prev, showtimes: false }));
+        }
       }
     };
 
-    fetchShowtimes();
+    fetchMovieData();
   }, [movieId]);
 
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
+      // Prevent redundant fetch if products are already loaded
+      if (products.length > 0) return;
+
       try {
         setLoading((prev) => ({ ...prev, products: true }));
         const response = await ProductService.getAll({ limit: 50 });
@@ -195,6 +207,36 @@ const MovieDetailAndBooking = () => {
     }
   }, []);
 
+  // Auto-select first theater and showtime when date changes or showtimes are loaded
+  // Only if not coming from QuickBooking (no URL params)
+  useEffect(() => {
+    // Skip auto-select if we have URL params (already initialized in state)
+    if (urlDate && urlShowtimeId && urlRoomId) return;
+
+    if (selectedDate && showtimes.length > 0) {
+      // Get showtimes for selected date
+      const dateShowtimes = showtimes.filter(
+        (st) =>
+          new Date(st.showTime).toISOString().split("T")[0] === selectedDate
+      );
+
+      if (dateShowtimes.length > 0) {
+        const firstRoomId = dateShowtimes[0].roomId;
+        const firstShowtime = dateShowtimes.find(
+          (st) => st.roomId === firstRoomId
+        );
+
+        // Only update if selection has changed to prevent unnecessary re-renders
+        if (selectedTheaterId !== firstRoomId) {
+          setSelectedTheaterId(firstRoomId);
+        }
+        if (firstShowtime && selectedShowtimeId !== firstShowtime.id) {
+          setSelectedShowtimeId(firstShowtime.id);
+        }
+      }
+    }
+  }, [selectedDate, showtimes, urlDate, urlShowtimeId, urlRoomId]);
+
   // Get unique dates from showtimes
   const availableDates = Array.from(
     new Set(
@@ -230,23 +272,30 @@ const MovieDetailAndBooking = () => {
     }, {} as Record<number, { roomId: number; showtimes: ShowtimeResponseDto[] }>);
 
   const theaterList = Object.values(showtimesByRoom).map(
-    ({ roomId, showtimes }) => ({
-      id: roomId,
-      cinemaId: 1,
-      name: `Phòng ${roomId}`,
-      capacity: 140,
-      cinema: {
-        name: "Cinema",
-        address: "Địa chỉ rạp",
-      },
-      showtimes: showtimes.map((st) =>
-        new Date(st.showTime).toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      ),
-      showtimeIds: showtimes.map((st) => st.id),
-    })
+    ({ roomId, showtimes: roomShowtimes }) => {
+      // Find room info from showtimeSearchData
+      const showtimeWithRoom = showtimeSearchData.find(
+        (st) => st.roomId === roomId
+      );
+
+      return {
+        id: roomId,
+        cinemaId: showtimeWithRoom?.room.cinemaId || 1,
+        name: showtimeWithRoom?.room.name || `Phòng ${roomId}`,
+        capacity: showtimeWithRoom?.room.capacity || 140,
+        cinema: {
+          name: showtimeWithRoom?.room.cinema.name || "Cinema",
+          address: showtimeWithRoom?.room.cinema.address || "Địa chỉ rạp",
+        },
+        showtimes: roomShowtimes.map((st) =>
+          new Date(st.showTime).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        ),
+        showtimeIds: roomShowtimes.map((st) => st.id),
+      };
+    }
   );
 
   const handleRatingSubmit = async (rating: number, comment: string) => {
@@ -272,9 +321,18 @@ const MovieDetailAndBooking = () => {
     }
   };
 
-  const handleTheaterSelect = () => {
-    // Reset showtime and seats when theater changes
-    setSelectedShowtimeId(null);
+  const handleTheaterSelect = (theaterId: number) => {
+    setSelectedTheaterId(theaterId);
+
+    // Auto-select first showtime of selected theater
+    const theater = theaterList.find((t) => t.id === theaterId);
+    if (theater && theater.showtimeIds && theater.showtimeIds.length > 0) {
+      setSelectedShowtimeId(theater.showtimeIds[0]);
+    } else {
+      setSelectedShowtimeId(null);
+    }
+
+    // Reset seats when theater changes
     setSelectedSeats([]);
   };
 
@@ -329,9 +387,7 @@ const MovieDetailAndBooking = () => {
     navigate("/booking/confirmation");
   };
 
-  const selectedTheater = theaterList.find((t) =>
-    t.showtimeIds?.includes(selectedShowtimeId || -1)
-  );
+  const selectedTheater = theaterList.find((t) => t.id === selectedTheaterId);
 
   if (loading.movie) {
     return (
@@ -384,7 +440,8 @@ const MovieDetailAndBooking = () => {
 
               <TheaterList
                 theaters={theaterList}
-                selectedTheater={selectedTheater?.id || null}
+                selectedTheater={selectedTheaterId}
+                selectedShowtimeId={selectedShowtimeId}
                 onSelectTheater={handleTheaterSelect}
                 onSelectShowtime={handleShowtimeSelect}
               />

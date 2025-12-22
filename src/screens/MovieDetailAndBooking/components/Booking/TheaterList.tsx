@@ -12,6 +12,7 @@ interface TheaterListProps {
     showtimeIds?: number[];
   })[];
   selectedTheater: number | null;
+  selectedShowtimeId?: number | null;
   onSelectTheater: (theaterId: number) => void;
   onSelectShowtime: (theaterId: number, showtimeIndex: number) => void;
 }
@@ -19,6 +20,7 @@ interface TheaterListProps {
 const TheaterList = ({
   theaters,
   selectedTheater,
+  selectedShowtimeId,
   onSelectTheater,
   onSelectShowtime,
 }: TheaterListProps) => {
@@ -77,15 +79,26 @@ const TheaterList = ({
 
           {/* Showtimes */}
           <div className="flex flex-wrap gap-3">
-            {selectedTheaterData.showtimes.map((time, index) => (
-              <button
-                key={index}
-                onClick={() => onSelectShowtime(selectedTheaterData.id, index)}
-                className="px-6 py-2 rounded-lg font-bold bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 transition"
-              >
-                {time}
-              </button>
-            ))}
+            {selectedTheaterData.showtimes.map((time, index) => {
+              const showtimeId = selectedTheaterData.showtimeIds?.[index];
+              const isSelected = showtimeId === selectedShowtimeId;
+
+              return (
+                <button
+                  key={index}
+                  onClick={() =>
+                    onSelectShowtime(selectedTheaterData.id, index)
+                  }
+                  className={`px-6 py-2 rounded-lg font-bold transition ${
+                    isSelected
+                      ? "bg-brand-yellow-dark text-black"
+                      : "bg-white/10 border-2 border-white/30 text-white hover:bg-white/20"
+                  }`}
+                >
+                  {time}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
