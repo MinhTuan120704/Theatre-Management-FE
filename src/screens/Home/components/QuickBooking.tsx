@@ -8,6 +8,7 @@ import {
   MovieService,
   ShowtimeService,
 } from "../../../services";
+import { useCinema } from "../../../contexts";
 import type {
   CinemaResponseDto,
   MovieResponseDto,
@@ -37,6 +38,7 @@ const generateDates = () => {
 
 const QuickBooking = () => {
   const navigate = useNavigate();
+  const { selectedCinema: defaultCinema, allCinemas } = useCinema();
   const [cinemas, setCinemas] = useState<CinemaResponseDto[]>([]);
   const [movies, setMovies] = useState<MovieResponseDto[]>([]);
   const [showtimes, setShowtimes] = useState<ShowtimeResponseDto[]>([]);
@@ -55,22 +57,38 @@ const QuickBooking = () => {
     showtimes: false,
   });
 
-  // Fetch cinemas on mount
+  // Use allCinemas from context if available
   useEffect(() => {
-    const fetchCinemas = async () => {
-      try {
-        setLoading((prev) => ({ ...prev, cinemas: true }));
-        const response = await CinemaService.getAll({ limit: 50 });
-        setCinemas(response.cinemas);
-      } catch (error) {
-        console.error("Error fetching cinemas:", error);
-      } finally {
-        setLoading((prev) => ({ ...prev, cinemas: false }));
-      }
-    };
+    if (allCinemas.length > 0) {
+      setCinemas(allCinemas);
+      setLoading((prev) => ({ ...prev, cinemas: false }));
+    }
+  }, [allCinemas]);
 
-    fetchCinemas();
-  }, []);
+  // Auto-select default cinema from context
+  useEffect(() => {
+    if (defaultCinema && !selectedCinema) {
+      setSelectedCinema(defaultCinema.id.toString());
+    }
+  }, [defaultCinema, selectedCinema]);
+
+  // Fetch cinemas on mount only if not available in context
+  useEffect(() => {
+    if (allCinemas.length === 0) {
+      const fetchCinemas = async () => {
+        try {
+          setLoading((prev) => ({ ...prev, cinemas: true }));
+          const response = await CinemaService.getAll({ limit: 50 });
+          setCinemas(response.cinemas);
+        } catch (error) {
+          console.error("Error fetching cinemas:", error);
+        } finally {
+          setLoading((prev) => ({ ...prev, cinemas: false }));
+        }
+      };
+      fetchCinemas();
+    }
+  }, [allCinemas]);
 
   // Fetch movies when cinema is selected
   useEffect(() => {

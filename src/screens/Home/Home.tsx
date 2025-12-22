@@ -7,6 +7,7 @@ import Carousel from "./components/Carousel";
 import QuickBooking from "./components/QuickBooking";
 import MovieCard from "./components/MovieCard";
 import { MovieService } from "../../services";
+import { useCinema } from "../../contexts";
 import type { MovieResponseDto } from "../../types";
 
 const MovieSection = ({
@@ -92,6 +93,7 @@ const MovieSection = ({
 };
 
 const Home = () => {
+  const { selectedCinema } = useCinema();
   const [nowShowingMovies, setNowShowingMovies] = useState<MovieResponseDto[]>(
     []
   );
@@ -107,9 +109,17 @@ const Home = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch all movies
-        const response = await MovieService.getAll({ limit: 50 });
-        const allMovies = response.movies;
+        let allMovies: MovieResponseDto[];
+        
+        // If cinema is selected, fetch movies for that cinema
+        if (selectedCinema) {
+          const response = await MovieService.getByCinemaId(selectedCinema.id);
+          allMovies = response.movies;
+        } else {
+          // Otherwise fetch all movies
+          const response = await MovieService.getAll({ limit: 50 });
+          allMovies = response.movies;
+        }
 
         // Separate movies by release date
         const now = new Date();
@@ -131,7 +141,7 @@ const Home = () => {
     };
 
     fetchMovies();
-  }, []);
+  }, [selectedCinema]);
 
   return (
     <div className="bg-gradient-to-b from-bg-dark to-bg-light min-h-screen">
