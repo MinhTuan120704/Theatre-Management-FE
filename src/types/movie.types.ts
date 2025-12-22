@@ -54,3 +54,7 @@ export interface MovieResponseDto {
   posterUrl: string;
   trailerUrl: string;
 }
+
+export interface MoviesByCinemaResponse {
+  movies: MovieResponseDto[];
+}

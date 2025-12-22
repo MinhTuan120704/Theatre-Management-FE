@@ -14,6 +14,7 @@ export const ENDPOINTS = {
   MOVIES: {
     GET_ALL: "/movies",
     GET_BY_ID: (id: number) => `/movies/${id}`,
+    GET_BY_CINEMA_ID: (cinemaId: number) => `/movies/cinema/${cinemaId}`,
     CREATE: "/movies",
     UPDATE: (id: number) => `/movies/${id}`,
     DELETE: (id: number) => `/movies/${id}`,
