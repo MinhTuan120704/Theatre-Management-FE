@@ -372,15 +372,40 @@ const MovieDetailAndBooking = () => {
   };
 
   const handleBooking = () => {
-    // TODO: Implement booking API call
-    console.log("Booking:", {
-      movieId,
+    if (!selectedShowtimeId || selectedSeats.length === 0) {
+      alert("Vui lòng chọn ghế ngồi");
+      return;
+    }
+
+    const showtimeInfo = showtimeSearchData.find((st) => st.id === selectedShowtimeId);
+    
+    // Prepare booking data to pass to Booking page
+    const bookingData = {
+      movieTitle: movie?.title || "",
+      movieId: Number(movieId),
       showtimeId: selectedShowtimeId,
-      seats: selectedSeats,
-      foodDrinks: selectedFoodDrinks,
-      total: calculateTotalPrice(),
-    });
-    navigate("/booking/confirmation");
+      showtimeData: showtimeInfo,
+      selectedSeats: selectedSeats.map((seatId) => {
+        const seat = seats.find((s) => s.id === seatId);
+        return {
+          id: seatId,
+          seatNumber: seat?.seatNumber || "",
+        };
+      }),
+      selectedProducts: Object.entries(selectedFoodDrinks)
+        .filter(([, qty]) => qty > 0)
+        .map(([itemId, quantity]) => {
+          const product = products.find((p) => p.id === Number(itemId));
+          return {
+            product: product!,
+            quantity,
+          };
+        }),
+      totalAmount: calculateTotalPrice(),
+    };
+
+    // Navigate to booking page with state
+    navigate(`/booking/${selectedShowtimeId}`, { state: bookingData });
   };
 
   const selectedTheater = theaterList.find((t) => t.id === selectedTheaterId);
