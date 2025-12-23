@@ -50,7 +50,7 @@ const Booking = () => {
   // Redirect if no booking data
   useEffect(() => {
     if (!bookingData) {
-      alert("Không tìm thấy thông tin đặt vé. Vui lòng chọn lại.");
+      toast.error("Không tìm thấy thông tin đặt vé. Vui lòng chọn lại.");
       navigate("/");
     }
   }, [bookingData, navigate]);
@@ -110,7 +110,9 @@ const Booking = () => {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Side - Forms */}
-          <div className={currentStep === 3 ? "lg:col-span-3" : "lg:col-span-2"}>
+          <div
+            className={currentStep === 3 ? "lg:col-span-3" : "lg:col-span-2"}
+          >
             {currentStep === 1 && (
               <MovieBookerInfo
                 onContinue={handleBookerInfoSubmit}
