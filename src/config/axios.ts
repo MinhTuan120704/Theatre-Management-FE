@@ -53,7 +53,8 @@ axiosInstance.interceptors.response.use(
         // Try to refresh token
         const refreshToken = localStorage.getItem("refreshToken");
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          // Use correct API endpoint for refresh token
+          const response = await axios.post(`${API_BASE_URL.replace(/\/$/, "")}/auth/refresh-token`, {
             refreshToken,
           });
 
@@ -70,7 +71,8 @@ axiosInstance.interceptors.response.use(
         // Refresh token failed, logout user
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        window.location.href = "/login";
+        localStorage.removeItem("user");
+        window.location.href = "/auth";
         return Promise.reject(refreshError);
       }
     }

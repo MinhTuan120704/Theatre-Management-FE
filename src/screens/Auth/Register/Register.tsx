@@ -2,20 +2,25 @@
 // Khi nhấn nút đăng ký, hãy validate nôi dung các trường trước khi request api
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "../../../contexts";
+import type { AuthRegisterDto } from "../../../types";
 import { Eye, EyeOff } from "lucide-react";
 
-interface RegisterProps {
-  onSwitchToLogin: () => void;
-}
-
-const Register = ({ onSwitchToLogin: _onSwitchToLogin }: RegisterProps) => {
+const Register = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
     email: "",
     password: "",
     confirmPassword: "",
+    dob: "", // Required
+    identifyCode: "", // Required
   });
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{
@@ -24,6 +29,8 @@ const Register = ({ onSwitchToLogin: _onSwitchToLogin }: RegisterProps) => {
     email?: string;
     password?: string;
     confirmPassword?: string;
+    dob?: string;
+    identifyCode?: string;
   }>({});
 
   const validateForm = () => {
@@ -64,22 +71,53 @@ const Register = ({ onSwitchToLogin: _onSwitchToLogin }: RegisterProps) => {
       newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
     }
 
+    // Validate dob
+    if (!formData.dob) {
+      newErrors.dob = "Vui lòng nhập ngày sinh";
+    }
+
+    // Validate identifyCode
+    if (!formData.identifyCode) {
+      newErrors.identifyCode = "Vui lòng nhập mã định danh";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // ...
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setSubmitError(null);
     if (!validateForm()) {
       return;
     }
-
     try {
-      // TODO: Call register API
-      console.log("Register data:", formData);
-    } catch (error) {
-      console.error("Register error:", error);
+      // Map form fields to API, all required fields are validated and non-empty
+      const payload: AuthRegisterDto = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        email: formData.email,
+        password: formData.password,
+        dob: formData.dob,
+        identifyCode: formData.identifyCode,
+        role: "customer",
+      };
+      await register(payload);
+      toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+      navigate("/auth?tab=login");
+    } catch (error: unknown) {
+      let msg = "Đăng ký thất bại. Vui lòng thử lại.";
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof (error as { message?: unknown }).message === "string"
+      ) {
+        msg = (error as { message: string }).message;
+      }
+      setSubmitError(msg);
+      toast.error(msg);
     }
   };
 
@@ -90,6 +128,7 @@ const Register = ({ onSwitchToLogin: _onSwitchToLogin }: RegisterProps) => {
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+    setSubmitError(null);
   };
 
   return (
@@ -213,7 +252,51 @@ const Register = ({ onSwitchToLogin: _onSwitchToLogin }: RegisterProps) => {
           )}
         </div>
 
+        {/* Date of Birth Input */}
+        <div>
+          <label htmlFor="dob" className="block text-sm font-medium mb-2">
+            Ngày sinh <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="dob"
+            name="dob"
+            value={formData.dob}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Ngày sinh"
+          />
+          {errors.dob && (
+            <p className="mt-1 text-sm text-red-500">{errors.dob}</p>
+          )}
+        </div>
+
+        {/* Identify Code Input */}
+        <div>
+          <label
+            htmlFor="identifyCode"
+            className="block text-sm font-medium mb-2"
+          >
+            Mã định danh <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="identifyCode"
+            name="identifyCode"
+            value={formData.identifyCode}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Mã định danh"
+          />
+          {errors.identifyCode && (
+            <p className="mt-1 text-sm text-red-500">{errors.identifyCode}</p>
+          )}
+        </div>
+
         {/* Submit Button */}
+        {submitError && (
+          <p className="text-sm text-red-500 text-center">{submitError}</p>
+        )}
         <button
           type="submit"
           className="w-full py-3 bg-brand-yellow-dark text-black font-bold rounded-lg hover:bg-brand-yellow-light transition uppercase"

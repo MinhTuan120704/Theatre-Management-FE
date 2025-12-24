@@ -1,5 +1,6 @@
 // Central export file for all types
 export * from "./auth.types";
+// Ensure AuthRefreshTokenResponse is exported for service usage
 export * from "./cinema.types";
 export * from "./common.types";
 export * from "./discount.types";

@@ -80,8 +80,13 @@ export const ENDPOINTS = {
   SHOWTIMES: {
     GET_ALL: "/showtimes",
     GET_BY_ID: (id: number) => `/showtimes/${id}`,
-    SEARCH_BY_MOVIE_ID: (movieId: number) => `/showtimes/searchByMovieId/${movieId}`,
-    GET_BY_CINEMA_MOVIE_DATE: (cinemaId: number, movieId: number, date: string) => `/showtimes/cinema/${cinemaId}/movie/${movieId}/date/${date}`,
+    SEARCH_BY_MOVIE_ID: (movieId: number) =>
+      `/showtimes/searchByMovieId/${movieId}`,
+    GET_BY_CINEMA_MOVIE_DATE: (
+      cinemaId: number,
+      movieId: number,
+      date: string
+    ) => `/showtimes/cinema/${cinemaId}/movie/${movieId}/date/${date}`,
     CREATE: "/showtimes",
     UPDATE: (id: number) => `/showtimes/${id}`,
     DELETE: (id: number) => `/showtimes/${id}`,
@@ -114,12 +119,17 @@ export const ENDPOINTS = {
     DELETE: (id: number) => `/employees/${id}`,
   },
 
-  // Auth endpoints (if you have auth)
+  // Auth endpoints
   AUTH: {
+    REGISTER: "/auth/register",
     LOGIN: "/auth/login",
     LOGOUT: "/auth/logout",
-    REFRESH: "/auth/refresh",
-    REGISTER: "/auth/register",
+    LOGOUT_ALL: "/auth/logout-all",
+    REFRESH_TOKEN: "/auth/refresh-token",
+    REQUEST_PASSWORD_RESET: "/auth/request-password-reset",
+    RESET_PASSWORD: "/auth/reset-password",
+    CHANGE_PASSWORD: "/auth/change-password",
+    VERIFY_TOKEN: "/auth/verify-token",
   },
 } as const;
 
