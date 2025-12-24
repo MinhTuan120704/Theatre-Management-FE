@@ -33,7 +33,6 @@ export const router = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
-        // TODO: Add protected route wrapper
       },
       {
         path: "*",

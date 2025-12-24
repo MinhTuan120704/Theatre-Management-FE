@@ -9,7 +9,7 @@
 // Nút đăng nhập để chuyển sang trang đăng nhập (nếu đã đăng nhập thì hiển thị tên người dùng và có thể chuyển sang trang người dùng)
 // Chọn ngôn ngữ
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -23,7 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { CinemaService } from "../services";
-import { useCinema } from "../contexts";
+import { useCinema, useAuth } from "../contexts";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -32,8 +32,9 @@ const Header = () => {
   const [isTheaterDropdownOpen, setIsTheaterDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [language] = useState("VN");
-  const [isLoggedIn] = useState(false); // TODO: Get from auth context
-  const [userName] = useState(""); // TODO: Get from auth context
+  const { isAuthenticated, user, logout } = useAuth();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loadingCinemas, setLoadingCinemas] = useState(false);
 
@@ -65,6 +66,27 @@ const Header = () => {
     e.preventDefault();
     // TODO: Implement search functionality
     console.log("Searching for:", searchQuery);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        isUserDropdownOpen &&
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isUserDropdownOpen]);
+
+  const handleLogout = async () => {
+    await logout();
+    setIsUserDropdownOpen(false);
+    navigate("/auth");
   };
 
   return (
@@ -141,16 +163,43 @@ const Header = () => {
               <span className="text-sm font-semibold">{language}</span>
             </button>
 
-            {isLoggedIn ? (
-              <button
-                onClick={() => navigate("/profile")}
-                className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
-              >
-                <User size={18} />
-                <span className="hidden lg:inline text-sm">
-                  {userName || "Tài khoản"}
-                </span>
-              </button>
+            {isAuthenticated && user ? (
+              <div className="relative" ref={userDropdownRef}>
+                <button
+                  onClick={() => setIsUserDropdownOpen((v) => !v)}
+                  className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                >
+                  <User size={18} />
+                  <span className="hidden lg:inline text-sm">{user.fullName || user.email || "Tài khoản"}</span>
+                  <ChevronDown size={16} className={`transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+                {isUserDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white text-black rounded-lg shadow-xl z-50">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <div className="font-semibold">{user.fullName}</div>
+                      <div className="text-xs text-gray-600">{user.email}</div>
+                    </div>
+                    <button
+                      onClick={() => { navigate("/profile"); setIsUserDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 transition"
+                    >
+                      Thông tin cá nhân
+                    </button>
+                    <button
+                      onClick={() => { navigate("/profile"); setIsUserDropdownOpen(false); }}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 transition"
+                    >
+                      Lịch sử mua vé
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 transition text-red-600 border-t border-gray-200"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={() => navigate("/auth")}
@@ -341,7 +390,7 @@ const Header = () => {
                 <span className="text-sm font-semibold">{language}</span>
               </button>
 
-              {isLoggedIn ? (
+              {isAuthenticated && user ? (
                 <button
                   onClick={() => {
                     navigate("/profile");
@@ -350,7 +399,7 @@ const Header = () => {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
                 >
                   <User size={18} />
-                  <span className="text-sm">{userName || "Tài khoản"}</span>
+                  <span className="text-sm">{user.fullName || user.email || "Tài khoản"}</span>
                 </button>
               ) : (
                 <button
