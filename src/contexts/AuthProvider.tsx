@@ -2,10 +2,10 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import AuthService from "../services/auth.service";
 import { AuthContext } from "./AuthContext";
-import type { AuthUserInfo, AuthRegisterDto } from "../types";
+import type { UserPublic, AuthRegisterDto } from "../types";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUserInfo | null>(AuthService.getUser());
+  const [user, setUser] = useState<UserPublic | null>(AuthService.getUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     AuthService.isAuthenticated()
   );

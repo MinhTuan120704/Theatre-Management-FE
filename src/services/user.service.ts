@@ -2,7 +2,7 @@ import axiosInstance from "../config/axios";
 import type { AxiosResponse } from "axios";
 import { ENDPOINTS } from "../config/endpoints";
 import type {
-  UserResponseDto,
+  UserPublic,
   UserCreateDto,
   UserUpdateDto,
   PaginatedUsersResponse,
@@ -27,8 +27,8 @@ class UserService {
   /**
    * Get user by ID
    */
-  async getById(id: number): Promise<UserResponseDto> {
-    const response: AxiosResponse<UserResponseDto> = await axiosInstance.get(
+  async getById(id: number): Promise<UserPublic> {
+    const response: AxiosResponse<UserPublic> = await axiosInstance.get(
       ENDPOINTS.USERS.GET_BY_ID(id)
     );
     return response.data;
@@ -37,8 +37,8 @@ class UserService {
   /**
    * Get user by email
    */
-  async getByEmail(email: string): Promise<UserResponseDto> {
-    const response: AxiosResponse<UserResponseDto> = await axiosInstance.get(
+  async getByEmail(email: string): Promise<UserPublic> {
+    const response: AxiosResponse<UserPublic> = await axiosInstance.get(
       ENDPOINTS.USERS.GET_BY_EMAIL(email)
     );
     return response.data;
@@ -47,8 +47,8 @@ class UserService {
   /**
    * Create new user
    */
-  async create(data: UserCreateDto): Promise<UserResponseDto> {
-    const response: AxiosResponse<UserResponseDto> = await axiosInstance.post(
+  async create(data: UserCreateDto): Promise<UserPublic> {
+    const response: AxiosResponse<UserPublic> = await axiosInstance.post(
       ENDPOINTS.USERS.CREATE,
       data
     );
@@ -58,8 +58,8 @@ class UserService {
   /**
    * Update user
    */
-  async update(id: number, data: UserUpdateDto): Promise<UserResponseDto> {
-    const response: AxiosResponse<UserResponseDto> = await axiosInstance.patch(
+  async update(id: number, data: UserUpdateDto): Promise<UserPublic> {
+    const response: AxiosResponse<UserPublic> = await axiosInstance.patch(
       ENDPOINTS.USERS.UPDATE(id),
       data
     );

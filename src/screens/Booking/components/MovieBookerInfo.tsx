@@ -3,11 +3,12 @@
 // Khi ấn nút tiếp tục, trước khi chuyển sang bước 2, hãy validate nội dung
 
 import { useState } from "react";
-import type { User } from "../../../types";
+import type { UserPublic } from "../../../types";
 
 interface MovieBookerInfoProps {
   onContinue: (data: BookerInfo) => void;
-  currentUser?: User | null;
+  // Accept client-safe user type
+  currentUser?: UserPublic | null | undefined;
   initialData?: BookerInfo | null;
 }
 

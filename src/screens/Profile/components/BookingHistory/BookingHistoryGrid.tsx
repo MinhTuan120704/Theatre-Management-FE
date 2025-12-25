@@ -4,19 +4,23 @@ import TicketInfoRow from "./TicketInfoRow";
 
 interface Ticket {
   orderId: string;
-  movieTitle: string;
+  orderIdNumber?: number;
+  movieTitle?: string;
   showtime: string;
   total: number;
+  status?: string;
 }
 
 interface BookingHistoryGridProps {
   fetchTickets: () => Promise<Ticket[]>;
   onCancel: (orderId: string) => Promise<void>;
+  onPay?: (orderId: number) => void;
 }
 
 const BookingHistoryGrid = ({
   fetchTickets,
   onCancel,
+  onPay,
 }: BookingHistoryGridProps) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +61,12 @@ const BookingHistoryGrid = ({
         <div className="text-white py-6 text-center">Không có vé nào</div>
       ) : (
         tickets.map((ticket) => (
-          <TicketInfoRow key={ticket.orderId} {...ticket} onCancel={onCancel} />
+          <TicketInfoRow
+            key={ticket.orderId}
+            {...ticket}
+            onCancel={onCancel}
+            onPay={onPay}
+          />
         ))
       )}
     </div>

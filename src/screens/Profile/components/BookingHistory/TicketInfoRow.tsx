@@ -4,18 +4,24 @@ import { toast } from "sonner";
 
 interface TicketInfoRowProps {
   orderId: string;
-  movieTitle: string;
+  orderIdNumber?: number;
+  movieTitle?: string;
   showtime: string;
   total: number;
+  status?: string;
   onCancel: (orderId: string) => Promise<void>;
+  onPay?: (orderId: number) => void;
 }
 
 const TicketInfoRow = ({
   orderId,
+  orderIdNumber,
   movieTitle,
   showtime,
   total,
+  status,
   onCancel,
+  onPay,
 }: TicketInfoRowProps) => {
   const [loading, setLoading] = useState(false);
 
@@ -31,13 +37,25 @@ const TicketInfoRow = ({
     }
   };
 
+  const handlePay = () => {
+    if (onPay && orderIdNumber) onPay(orderIdNumber);
+  };
+
   return (
     <div className="grid grid-cols-5 items-center py-3 px-2 border-b border-white/20 text-white">
       <div className="font-bold">{orderId}</div>
       <div>{movieTitle}</div>
       <div>{showtime}</div>
       <div className="font-semibold">{total.toLocaleString()} VND</div>
-      <div>
+      <div className="flex gap-2">
+        {status === "pending" && onPay && orderIdNumber && (
+          <button
+            onClick={handlePay}
+            className="bg-brand-yellow-light text-bg-dark font-bold px-4 py-2 rounded-lg hover:bg-brand-yellow-dark transition"
+          >
+            THANH TOÁN
+          </button>
+        )}
         <button
           onClick={handleCancel}
           disabled={loading}

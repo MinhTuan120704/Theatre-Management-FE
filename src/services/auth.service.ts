@@ -11,8 +11,8 @@ import type {
   AuthChangePasswordDto,
   AuthVerifyTokenDto,
   AuthVerifyTokenResponse,
-  AuthUserInfo,
   AuthRefreshTokenResponse,
+  UserPublic,
 } from "../types";
 
 class AuthService {
@@ -30,10 +30,56 @@ class AuthService {
       credentials
     );
     // Save tokens and user info to localStorage (for now, consider secure storage in future)
-    const { accessToken, refreshToken, user } = response.data;
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(user));
+    const resp = response.data as any;
+    // Try several common locations for tokens, including `tokens` object used by backend
+    let accessToken: string | undefined =
+      resp?.tokens?.accessToken ??
+      resp?.accessToken ??
+      resp?.token ??
+      resp?.data?.accessToken ??
+      resp?.data?.token;
+    let refreshToken: string | undefined =
+      resp?.tokens?.refreshToken ??
+      resp?.refreshToken ??
+      resp?.data?.refreshToken ??
+      resp?.data?.refreshTokenToken;
+
+    // Also check Authorization header (some backends return in headers)
+    const headerAuth =
+      response.headers?.authorization ?? response.headers?.Authorization;
+    if (!accessToken && typeof headerAuth === "string") {
+      accessToken = headerAuth.startsWith("Bearer ")
+        ? headerAuth.slice(7)
+        : headerAuth;
+    }
+
+    const user = resp?.user ?? resp?.data?.user ?? resp?.userInfo ?? resp?.data;
+
+    // Dev debug: log token extraction result (remove or lower log level in production)
+    try {
+      // eslint-disable-next-line no-console
+      console.debug("AuthService.login: tokens found ->", {
+        accessToken: !!accessToken,
+        refreshToken: !!refreshToken,
+        user: !!user,
+      });
+    } catch (e) {
+      /* ignore */
+    }
+
+    if (accessToken) {
+      const normalized = accessToken.startsWith("Bearer ")
+        ? accessToken.slice(7)
+        : accessToken;
+      localStorage.setItem("accessToken", normalized);
+    }
+    if (refreshToken) {
+      const normalizedR = refreshToken.startsWith("Bearer ")
+        ? refreshToken.slice(7)
+        : refreshToken;
+      localStorage.setItem("refreshToken", normalizedR);
+    }
+    if (user) localStorage.setItem("user", JSON.stringify(user));
     return response.data;
   }
 
@@ -64,9 +110,26 @@ class AuthService {
     }
     const response: AxiosResponse<AuthRefreshTokenResponse> =
       await axiosInstance.post(ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken });
-    const { accessToken } = response.data;
-    localStorage.setItem("accessToken", accessToken);
-    return accessToken;
+    const resp = response.data as any;
+    const accessToken: string | undefined =
+      resp?.accessToken ?? resp?.tokens?.accessToken ?? resp?.data?.accessToken;
+    if (!accessToken) throw new Error("No access token returned from refresh");
+    const normalized = accessToken.startsWith("Bearer ")
+      ? accessToken.slice(7)
+      : accessToken;
+    localStorage.setItem("accessToken", normalized);
+    // Update axios defaults
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (axiosInstance.defaults.headers as any).common =
+        (axiosInstance.defaults.headers as any).common || {};
+      (axiosInstance.defaults.headers as any).common[
+        "Authorization"
+      ] = `Bearer ${normalized}`;
+    } catch (e) {
+      /* ignore */
+    }
+    return normalized;
   }
 
   // Request password reset
@@ -116,9 +179,9 @@ class AuthService {
   }
 
   // Get current user info
-  getUser(): AuthUserInfo | null {
+  getUser(): UserPublic | null {
     const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+    return user ? (JSON.parse(user) as UserPublic) : null;
   }
 
   // Clear all auth info

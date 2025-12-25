@@ -1,5 +1,5 @@
 // Order Types
-export type PaymentMethod = "credit_card" | "paypal" | "cash";
+import type { PaymentMethod } from "./payment.types";
 export type OrderStatus = "pending" | "completed" | "failed" | "cancelled";
 
 export interface Order {

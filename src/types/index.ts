@@ -14,3 +14,4 @@ export * from "./seat.types";
 export * from "./showtime.types";
 export * from "./ticket.types";
 export * from "./user.types";
+export * from "./payment.types";

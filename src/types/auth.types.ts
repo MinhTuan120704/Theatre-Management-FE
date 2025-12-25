@@ -70,14 +70,7 @@ export interface AuthVerifyTokenResponse {
 }
 
 // User Info
-export interface AuthUserInfo {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  dob: string;
-  identifyCode: string;
-  role: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import type { UserPublic } from "./user.types";
+
+// AuthUserInfo is the same as the client-safe UserPublic
+export type AuthUserInfo = UserPublic;

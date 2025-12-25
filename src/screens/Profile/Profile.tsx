@@ -2,34 +2,62 @@
 // Khu vực chính:
 // "Thông tin người dùng" : Nửa trên là UserInfo, nửa dưới là ChangePassword
 // "Lịch sử mua vé": BookingHistoryGrid
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProfileSidebar from "./components/ProfileSidebar";
 import UserInfo from "./components/UserInfo/UserInfo";
 import ChangePassword from "./components/UserInfo/ChangePassword";
 import BookingHistoryGrid from "./components/BookingHistory/BookingHistoryGrid";
-
-// Dummy service functions (replace with real service calls)
-const fetchTickets = async () => [
-  {
-    orderId: "AYCWFGD",
-    movieTitle: "Quái thú vô hình",
-    showtime: "8:00 22/11/2025",
-    total: 180000,
-  },
-  {
-    orderId: "DGWHBAQ",
-    movieTitle: "Cục vàng của ngoại",
-    showtime: "20:00 25/11/2025",
-    total: 205000,
-  },
-];
-const cancelTicket = async () => {
-  // TODO: Call cancel ticket service
-  return Promise.resolve();
-};
+import { useAuth } from "../../contexts";
+import OrderService from "../../services/order.service";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"info" | "history">("info");
+
+  type Ticket = {
+    orderId: string;
+    orderIdNumber: number;
+    movieTitle: string;
+    showtime: string;
+    total: number;
+    status: string;
+  };
+
+  const fetchTickets = async (): Promise<Ticket[]> => {
+    if (!user) return [];
+    try {
+      const orders = await OrderService.getByUserId(user.id);
+      return orders.map((o) => ({
+        orderId: `#${o.id}`,
+        orderIdNumber: o.id,
+        movieTitle: "",
+        showtime: new Date(o.orderedAt).toLocaleString(),
+        total: o.totalPrice,
+        status: o.status,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    // nothing to do here for now; fetchTickets uses current `user` when invoked
+  }, [user]);
+
+  const cancelTicket = async (orderId: string) => {
+    // convert '#id' to number
+    const id = Number(orderId.replace(/^#/, ""));
+    if (!id) return Promise.reject();
+    await OrderService.update(id, { status: "cancelled" });
+    return Promise.resolve();
+  };
+
+  const handlePay = (orderId: number) => {
+    // navigate to booking page to resume payment
+    navigate("/booking", { state: { orderId } });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-purple-800 py-12 px-4">
@@ -49,6 +77,7 @@ const Profile = () => {
               <BookingHistoryGrid
                 fetchTickets={fetchTickets}
                 onCancel={cancelTicket}
+                onPay={handlePay}
               />
             )}
           </div>

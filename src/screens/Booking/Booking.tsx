@@ -5,14 +5,18 @@
 // Main content bên trái - Bước 2 - PaymentInfo : Người dùng chọn phương thức thanh toán phù hợp và chuyển đến cổng thanh toán.
 
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import OrderService from "../../services/order.service";
+import PaymentService from "../../services/payment.service";
+import type { OrderCreateDto, OrderResponseDto } from "../../types";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import ProgressStepper from "./components/ProgressStepper";
 import MovieTicketInfo from "./components/MovieTicketInfo";
 import MovieBookerInfo, { type BookerInfo } from "./components/MovieBookerInfo";
 import PaymentInfo from "./components/PaymentInfo";
 import BookingOverview from "./components/BookingOverview";
-import type { ShowtimeWithRoomInfo, Product, User } from "../../types";
+import type { ShowtimeWithRoomInfo, Product } from "../../types";
+import { useAuth } from "../../contexts";
 
 interface SelectedSeat {
   id: number;
@@ -35,17 +39,29 @@ interface BookingData {
 }
 
 const Booking = () => {
-  const { showtimeId } = useParams();
+  // const { showtimeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [bookerInfo, setBookerInfo] = useState<BookerInfo | null>(null);
+  const [order, setOrder] = useState<OrderResponseDto | null>(null);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
 
-  // TODO: Get current user from auth context when implemented
-  const currentUser: User | null = null;
+  // Lấy user từ context
+  const { user: currentUser, isAuthenticated } = useAuth();
 
   // Get booking data from navigation state
-  const bookingData = location.state as BookingData | null;
+  type LocationState = BookingData | { orderId: number } | null | undefined;
+  const state = location.state as LocationState;
+  const bookingData =
+    state && "movieTitle" in (state as BookingData)
+      ? (state as BookingData)
+      : null;
+  const resumeOrderId =
+    state && "orderId" in (state as { orderId: number })
+      ? (state as { orderId: number }).orderId
+      : undefined;
 
   // Redirect if no booking data
   useEffect(() => {
@@ -54,6 +70,53 @@ const Booking = () => {
       navigate("/");
     }
   }, [bookingData, navigate]);
+
+  // If user navigated to resume an existing order, fetch it
+  useEffect(() => {
+    const fetchOrder = async (id: number) => {
+      try {
+        const o = await OrderService.getById(id);
+        setOrder(o);
+        setCurrentStep(2);
+      } catch {
+        toast.error("Không thể tải đơn hàng. Vui lòng thử lại.");
+      }
+    };
+    if (resumeOrderId) fetchOrder(resumeOrderId);
+  }, [resumeOrderId]);
+
+  // Countdown for payment (15 minutes)
+  useEffect(() => {
+    if (!order) {
+      setTimeLeftSeconds(null);
+      return;
+    }
+    const start = order.orderedAt
+      ? new Date(order.orderedAt).getTime()
+      : Date.now();
+    const expireAt = start + 15 * 60 * 1000;
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((expireAt - Date.now()) / 1000));
+      setTimeLeftSeconds(diff);
+      if (diff <= 0) {
+        // expire order
+        (async () => {
+          try {
+            await OrderService.update(order.id, { status: "cancelled" });
+            const refreshed = await OrderService.getById(order.id);
+            setOrder(refreshed);
+            toast.error("Đơn hàng đã hết hạn do quá thời gian giữ vé.");
+            setCurrentStep(1);
+          } catch (e) {
+            console.error(e);
+          }
+        })();
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [order]);
 
   // Extract data from bookingData or use defaults
   const movieTitle = bookingData?.movieTitle || "";
@@ -65,36 +128,77 @@ const Booking = () => {
   // Return the total amount passed from previous page
   const calculateTotal = () => totalAmount;
 
-  const handleBookerInfoSubmit = (data: BookerInfo) => {
+  const handleBookerInfoSubmit = async (data: BookerInfo) => {
     setBookerInfo(data);
-    setCurrentStep(2);
+    // Tạo order ở đây
+    if (!bookingData) return;
+    setLoadingOrder(true);
+    try {
+      // Nếu đã đăng nhập thì dùng userId, nếu không thì để userId = 0 hoặc null (tùy backend)
+      const userId = currentUser?.id ?? 0;
+      const orderCreate: OrderCreateDto = {
+        userId,
+        totalPrice: bookingData.totalAmount,
+        paymentMethod: "credit_card", // default, sẽ update sau khi chọn phương thức thanh toán
+        status: "pending",
+        orderedAt: new Date(),
+        tickets: bookingData.selectedSeats.map((seat) => ({
+          showtimeId: bookingData.showtimeId,
+          seatId: seat.id,
+        })),
+        products:
+          Array.isArray(bookingData.selectedProducts) &&
+          bookingData.selectedProducts.length > 0
+            ? bookingData.selectedProducts.map((item) => ({
+                productId: item.product?.id ?? 0,
+                quantity: item.quantity,
+              }))
+            : [],
+      };
+      const createdOrder = await OrderService.create(orderCreate);
+      setOrder(createdOrder);
+      setCurrentStep(2);
+    } catch {
+      toast.error("Không thể tạo đơn hàng. Vui lòng thử lại.");
+    } finally {
+      setLoadingOrder(false);
+    }
   };
 
   const handlePaymentBack = () => {
     setCurrentStep(1);
   };
 
+  // Handle payment action from PaymentInfo
   const handlePayment = async (
-    paymentMethod: string,
-    discountCode?: string
+    paymentMethod: "momo" | "domestic" | "international"
   ) => {
+    if (!order) return toast.error("Không tìm thấy đơn hàng để thanh toán.");
     try {
-      // TODO: Implement actual payment processing
-      console.log("Processing payment:", {
-        bookerInfo,
-        paymentMethod,
-        discountCode,
-        showtimeId,
-        selectedSeats,
-        selectedProducts,
-        totalAmount: calculateTotal(),
+      const map: Record<string, "credit_card" | "paypal" | "cash"> = {
+        momo: "paypal",
+        domestic: "credit_card",
+        international: "credit_card",
+      };
+      const pm = map[paymentMethod] || "credit_card";
+      const payResp = await PaymentService.processPayment(order.id, {
+        paymentMethod: pm,
+        isSuccess: true,
       });
-
-      toast.success("Thanh toán thành công! Vé đã được đặt.");
-      setCurrentStep(3);
-    } catch (error) {
-      console.error("Payment error:", error);
-      toast.error("Có lỗi xảy ra trong quá trình thanh toán");
+      if (payResp?.success) {
+        toast.success("Thanh toán thành công! Vé đã được đặt.");
+        // Backend already updated order status, fetch the latest order
+        const refreshed = await OrderService.getById(order.id);
+        setOrder(refreshed);
+        setCurrentStep(3);
+      } else {
+        toast.error(
+          payResp?.message || "Thanh toán thất bại. Vui lòng thử lại."
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Thanh toán thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -116,17 +220,47 @@ const Booking = () => {
             {currentStep === 1 && (
               <MovieBookerInfo
                 onContinue={handleBookerInfoSubmit}
-                currentUser={currentUser}
+                currentUser={
+                  isAuthenticated && currentUser ? currentUser : undefined
+                }
                 initialData={bookerInfo}
               />
             )}
-            {currentStep === 2 && (
-              <PaymentInfo
-                onBack={handlePaymentBack}
-                onPayment={handlePayment}
-              />
+            {loadingOrder && (
+              <div className="text-white text-center py-8">
+                Đang tạo đơn hàng...
+              </div>
             )}
-            {currentStep === 3 && bookingData && bookerInfo && (
+            {currentStep === 2 && order && (
+              <div>
+                <div className="mb-4 text-white">
+                  <p>
+                    Đơn hàng: <span className="font-bold">#{order.id}</span>
+                  </p>
+                  <p>
+                    Trạng thái:{" "}
+                    <span className="font-semibold">{order.status}</span>
+                  </p>
+                  {timeLeftSeconds !== null && timeLeftSeconds > 0 && (
+                    <p>
+                      Thời gian giữ vé:{" "}
+                      <span className="font-bold">{`${Math.floor(
+                        timeLeftSeconds / 60
+                      )
+                        .toString()
+                        .padStart(2, "0")}:${(timeLeftSeconds % 60)
+                        .toString()
+                        .padStart(2, "0")}`}</span>
+                    </p>
+                  )}
+                </div>
+                <PaymentInfo
+                  onBack={handlePaymentBack}
+                  onPayment={handlePayment}
+                />
+              </div>
+            )}
+            {currentStep === 3 && bookingData && bookerInfo && order && (
               <BookingOverview
                 movieTitle={movieTitle || "Đang tải thông tin phim..."}
                 cinema={
@@ -149,6 +283,7 @@ const Booking = () => {
                 products={selectedProducts}
                 totalAmount={calculateTotal()}
                 bookerInfo={bookerInfo}
+                // Có thể truyền thêm orderId nếu cần
               />
             )}
           </div>
