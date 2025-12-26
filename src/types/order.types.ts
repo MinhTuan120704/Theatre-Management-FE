@@ -1,5 +1,5 @@
 // Order Types
-export type PaymentMethod = "credit_card" | "paypal" | "cash";
+import type { PaymentMethod } from "./payment.types";
 export type OrderStatus = "pending" | "completed" | "failed" | "cancelled";
 
 export interface Order {
@@ -56,6 +56,41 @@ export interface OrderResponseDto {
   paidAt?: Date;
   discountId?: number;
   orderedAt: Date;
+}
+
+// Detailed order returned by user-facing APIs (includes movie/cinema/showtime/seats/products)
+export interface OrderSeatDto {
+  seatId: number;
+  seatNumber: string;
+}
+
+export interface OrderProductDtoResponse {
+  productId: number;
+  productName: string;
+  productPrice: string; // price may come as string from API (e.g. "40000.00")
+  quantity: number;
+}
+
+export interface OrderDetailResponseDto {
+  id: number;
+  userId: number;
+  totalPrice: string; // API may return string price
+  paymentMethod?: PaymentMethod | null;
+  status: OrderStatus;
+  reservationExpiresAt?: string | null;
+  paidAt?: string | null;
+  discountId?: number | null;
+  orderedAt: string;
+  movieId?: number;
+  movieTitle?: string;
+  cinemaId?: number;
+  cinemaName?: string;
+  cinemaAddress?: string;
+  roomId?: number;
+  roomName?: string;
+  showTime?: string;
+  seats?: OrderSeatDto[];
+  products?: OrderProductDtoResponse[];
 }
 
 // Order Product Details Types

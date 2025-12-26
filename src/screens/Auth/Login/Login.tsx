@@ -2,52 +2,64 @@
 // Khi ấn nút đăng nhập, hãy validate các trường trước khi gửi request api
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "../../../contexts";
 import { Eye, EyeOff } from "lucide-react";
 
-interface LoginProps {
-  onSwitchToRegister: () => void;
-}
-
-const Login = ({ onSwitchToRegister: _onSwitchToRegister }: LoginProps) => {
+const Login = () => {
   const [formData, setFormData] = useState({
-    account: "",
+    email: "",
     password: "",
     rememberMe: false,
   });
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ account?: string; password?: string }>(
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
 
   const validateForm = () => {
-    const newErrors: { account?: string; password?: string } = {};
-
-    if (!formData.account.trim()) {
-      newErrors.account = "Vui lòng nhập tài khoản, email hoặc số điện thoại";
+    const newErrors: { email?: string; password?: string } = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = "Vui lòng nhập email";
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Email không hợp lệ";
     }
-
     if (!formData.password) {
       newErrors.password = "Vui lòng nhập mật khẩu";
     } else if (formData.password.length < 6) {
       newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setSubmitError(null);
     if (!validateForm()) {
       return;
     }
-
     try {
-      // TODO: Call login API
-      console.log("Login data:", formData);
-    } catch (error) {
-      console.error("Login error:", error);
+      await login(formData.email, formData.password);
+      toast.success("Đăng nhập thành công!");
+      navigate("/");
+    } catch (error: unknown) {
+      let msg = "Đăng nhập thất bại. Vui lòng thử lại.";
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof (error as { message?: unknown }).message === "string"
+      ) {
+        msg = (error as { message: string }).message;
+      }
+      setSubmitError(msg);
+      toast.error(msg);
     }
   };
 
@@ -61,28 +73,28 @@ const Login = ({ onSwitchToRegister: _onSwitchToRegister }: LoginProps) => {
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+    setSubmitError(null);
   };
 
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Account Input */}
+        {/* Email Input */}
         <div>
-          <label htmlFor="account" className="block text-sm font-medium mb-2">
-            Tài khoản, Email hoặc số điện thoại{" "}
-            <span className="text-red-500">*</span>
+          <label htmlFor="email" className="block text-sm font-medium mb-2">
+            Email <span className="text-red-500">*</span>
           </label>
           <input
-            type="text"
-            id="account"
-            name="account"
-            value={formData.account}
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            placeholder="Nhập tài khoản, email hoặc số điện thoại"
+            placeholder="Nhập email"
           />
-          {errors.account && (
-            <p className="mt-1 text-sm text-red-500">{errors.account}</p>
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
           )}
         </div>
 
@@ -132,6 +144,9 @@ const Login = ({ onSwitchToRegister: _onSwitchToRegister }: LoginProps) => {
         </div>
 
         {/* Submit Button */}
+        {submitError && (
+          <p className="text-sm text-red-500 text-center">{submitError}</p>
+        )}
         <button
           type="submit"
           className="w-full py-3 bg-brand-yellow-dark text-black font-bold rounded-lg hover:bg-brand-yellow-light transition uppercase"

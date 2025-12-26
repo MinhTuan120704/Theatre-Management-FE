@@ -38,11 +38,7 @@ const Auth = () => {
 
         {/* Content */}
         <div className="p-8">
-          {activeTab === "login" ? (
-            <Login onSwitchToRegister={() => setActiveTab("register")} />
-          ) : (
-            <Register onSwitchToLogin={() => setActiveTab("login")} />
-          )}
+          {activeTab === "login" ? <Login /> : <Register />}
         </div>
       </div>
     </div>

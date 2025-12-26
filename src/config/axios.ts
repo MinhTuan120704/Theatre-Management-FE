@@ -1,4 +1,5 @@
 import axios from "axios";
+import ENDPOINTS from "./endpoints";
 import type {
   AxiosInstance,
   AxiosRequestConfig,
@@ -24,9 +25,19 @@ const axiosInstance: AxiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Add auth token if available
-    const token = localStorage.getItem("accessToken");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const raw = localStorage.getItem("accessToken");
+    // Guard against stringified undefined/null stored accidentally
+    if (raw && raw !== "undefined" && raw !== "null" && config.headers) {
+      // Normalize token: some responses may already include the 'Bearer ' prefix
+      const token = raw.startsWith("Bearer ") ? raw : `Bearer ${raw}`;
+      config.headers.Authorization = token;
+    }
+    // Debug: log whether we attached an auth header (helps troubleshoot missing token issues)
+    try {
+      // eslint-disable-next-line no-console
+      console.debug("axios request:", config.url, "auth:", !!config.headers?.Authorization);
+    } catch (e) {
+      /* ignore */
     }
     return config;
   },
@@ -47,30 +58,42 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401 Unauthorized
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // eslint-disable-next-line no-console
+      console.debug("axios response 401 for:", originalRequest?.url);
       originalRequest._retry = true;
 
       try {
-        // Try to refresh token
         const refreshToken = localStorage.getItem("refreshToken");
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
+          const response = await axios.post(
+            `${API_BASE_URL.replace(/\/$/, "")}${ENDPOINTS?.AUTH?.REFRESH_TOKEN || "/auth/refresh-token"}`,
+            { refreshToken }
+          );
+          const data = response.data;
+          const accessToken = typeof data === "string" ? data : data?.accessToken;
+          if (!accessToken) throw new Error("No access token returned from refresh");
 
-          const { accessToken } = response.data;
-          localStorage.setItem("accessToken", accessToken);
+          // Save normalized token (strip accidental 'Bearer ' if returned)
+          const normalized = accessToken && accessToken.startsWith
+            ? (accessToken.startsWith("Bearer ") ? accessToken.slice(7) : accessToken)
+            : accessToken;
+          if (!normalized) throw new Error("No access token returned from refresh");
 
-          // Retry original request with new token
+          localStorage.setItem("accessToken", normalized);
+
+          // Update axios default header and original request header
+          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${normalized}`;
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            (originalRequest.headers as any)["Authorization"] = `Bearer ${normalized}`;
           }
+
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh token failed, logout user
+        // Refresh token failed - clear auth and forward error
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        window.location.href = "/login";
+        localStorage.removeItem("user");
         return Promise.reject(refreshError);
       }
     }

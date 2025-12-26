@@ -12,3 +12,4 @@ export { default as SeatService } from "./seat.service";
 export { default as ShowtimeService } from "./showtime.service";
 export { default as TicketService } from "./ticket.service";
 export { default as UserService } from "./user.service";
+export { default as PaymentService } from "./payment.service";

@@ -109,28 +109,25 @@ const Home = () => {
         setLoading(true);
         setError(null);
 
-        let allMovies: MovieResponseDto[];
-        
-        // If cinema is selected, fetch movies for that cinema
+        let allMovies: MovieResponseDto[] = [];
+        let comingSoon: MovieResponseDto[] = [];
+        const now = new Date();
+
         if (selectedCinema) {
-          const response = await MovieService.getByCinemaId(selectedCinema.id);
-          allMovies = response.movies;
+          // For coming soon: use getByCinemaId (API returns movies with incoming showtimes)
+          const comingSoonRes = await MovieService.getByCinemaId(selectedCinema.id);
+          comingSoon = comingSoonRes.movies;
+          // For now showing: get all and filter by release date
+          const allRes = await MovieService.getAll({ limit: 50 });
+          allMovies = allRes.movies.filter((movie) => new Date(movie.releaseDate) <= now);
         } else {
-          // Otherwise fetch all movies
-          const response = await MovieService.getAll({ limit: 50 });
-          allMovies = response.movies;
+          // No cinema selected: get all and split by release date
+          const allRes = await MovieService.getAll({ limit: 50 });
+          allMovies = allRes.movies.filter((movie) => new Date(movie.releaseDate) <= now);
+          comingSoon = allRes.movies.filter((movie) => new Date(movie.releaseDate) > now);
         }
 
-        // Separate movies by release date
-        const now = new Date();
-        const nowShowing = allMovies.filter(
-          (movie) => new Date(movie.releaseDate) <= now
-        );
-        const comingSoon = allMovies.filter(
-          (movie) => new Date(movie.releaseDate) > now
-        );
-
-        setNowShowingMovies(nowShowing);
+        setNowShowingMovies(allMovies);
         setComingSoonMovies(comingSoon);
       } catch (err) {
         console.error("Error fetching movies:", err);

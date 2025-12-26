@@ -44,3 +44,6 @@ export interface UserResponseDto {
   role: UserRole;
   createdAt: Date;
 }
+
+// Public user type safe for client-side usage (no passwordHash)
+export type UserPublic = UserResponseDto;

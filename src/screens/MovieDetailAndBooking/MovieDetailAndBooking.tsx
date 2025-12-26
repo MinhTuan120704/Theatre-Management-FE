@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import MovieInfo from "./components/MovieDetail/MovieInfo";
 import Rating from "./components/MovieDetail/Rating";
 import Comment from "./components/MovieDetail/Comment";
@@ -78,20 +79,26 @@ const MovieDetailAndBooking = () => {
   // Fetch movie details, reviews, and showtimes when movieId changes
   useEffect(() => {
     if (!movieId) return;
-    
+
     // Skip if already fetched for this movieId
     if (fetchedMovieIdRef.current === Number(movieId)) return;
 
     const fetchMovieData = async () => {
       try {
-        setLoading((prev) => ({ ...prev, movie: true, reviews: true, showtimes: true }));
-        
+        setLoading((prev) => ({
+          ...prev,
+          movie: true,
+          reviews: true,
+          showtimes: true,
+        }));
+
         // Fetch all data in parallel
-        const [movieResponse, reviewResponse, showtimeResponse] = await Promise.all([
-          MovieService.getById(Number(movieId)),
-          ReviewService.getAll({ limit: 100 }),
-          ShowtimeService.searchByMovieId(Number(movieId)),
-        ]);
+        const [movieResponse, reviewResponse, showtimeResponse] =
+          await Promise.all([
+            MovieService.getById(Number(movieId)),
+            ReviewService.getAll({ limit: 100 }),
+            ShowtimeService.searchByMovieId(Number(movieId)),
+          ]);
 
         // Set movie
         setMovie(movieResponse);
@@ -120,14 +127,19 @@ const MovieDetailAndBooking = () => {
             .split("T")[0];
           setSelectedDate(firstDate);
         }
-        
+
         // Mark as fetched
         fetchedMovieIdRef.current = Number(movieId);
       } catch (err) {
         console.error("Error fetching movie data:", err);
         setError("Không thể tải thông tin phim");
       } finally {
-        setLoading((prev) => ({ ...prev, movie: false, reviews: false, showtimes: false }));
+        setLoading((prev) => ({
+          ...prev,
+          movie: false,
+          reviews: false,
+          showtimes: false,
+        }));
       }
     };
 
@@ -222,7 +234,7 @@ const MovieDetailAndBooking = () => {
           if (prev !== firstRoomId) return firstRoomId;
           return prev;
         });
-        
+
         if (firstShowtime) {
           setSelectedShowtimeId((prev) => {
             if (prev !== firstShowtime.id) return firstShowtime.id;
@@ -313,7 +325,7 @@ const MovieDetailAndBooking = () => {
       setReviews(movieReviews);
     } catch (err) {
       console.error("Error submitting review:", err);
-      alert("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+      toast.error("Không thể gửi đánh giá. Vui lòng thử lại sau.");
     }
   };
 
@@ -372,15 +384,42 @@ const MovieDetailAndBooking = () => {
   };
 
   const handleBooking = () => {
-    // TODO: Implement booking API call
-    console.log("Booking:", {
-      movieId,
+    if (!selectedShowtimeId || selectedSeats.length === 0) {
+      toast.error("Vui lòng chọn ghế ngồi");
+      return;
+    }
+
+    const showtimeInfo = showtimeSearchData.find(
+      (st) => st.id === selectedShowtimeId
+    );
+
+    // Prepare booking data to pass to Booking page
+    const bookingData = {
+      movieTitle: movie?.title || "",
+      movieId: Number(movieId),
       showtimeId: selectedShowtimeId,
-      seats: selectedSeats,
-      foodDrinks: selectedFoodDrinks,
-      total: calculateTotalPrice(),
-    });
-    navigate("/booking/confirmation");
+      showtimeData: showtimeInfo,
+      selectedSeats: selectedSeats.map((seatId) => {
+        const seat = seats.find((s) => s.id === seatId);
+        return {
+          id: seatId,
+          seatNumber: seat?.seatNumber || "",
+        };
+      }),
+      selectedProducts: Object.entries(selectedFoodDrinks)
+        .filter(([, qty]) => qty > 0)
+        .map(([itemId, quantity]) => {
+          const product = products.find((p) => p.id === Number(itemId));
+          return {
+            product: product!,
+            quantity,
+          };
+        }),
+      totalAmount: calculateTotalPrice(),
+    };
+
+    // Navigate to booking page with state
+    navigate(`/booking/${selectedShowtimeId}`, { state: bookingData });
   };
 
   const selectedTheater = theaterList.find((t) => t.id === selectedTheaterId);

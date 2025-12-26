@@ -39,9 +39,8 @@ class MovieService {
    * Get movies by cinema ID with incoming showtimes
    */
   async getByCinemaId(cinemaId: number): Promise<MoviesByCinemaResponse> {
-    const response: AxiosResponse<MoviesByCinemaResponse> = await axiosInstance.get(
-      ENDPOINTS.MOVIES.GET_BY_CINEMA_ID(cinemaId)
-    );
+    const response: AxiosResponse<MoviesByCinemaResponse> =
+      await axiosInstance.get(ENDPOINTS.MOVIES.GET_BY_CINEMA_ID(cinemaId));
     return response.data;
   }
 

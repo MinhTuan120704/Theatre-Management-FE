@@ -4,7 +4,7 @@ import type { MovieResponseDto } from "./movie.types";
 import type { OrderResponseDto } from "./order.types";
 import type { ProductResponseDto } from "./product.types";
 import type { ReviewResponseDto } from "./review.types";
-import type { UserResponseDto } from "./user.types";
+import type { UserPublic } from "./user.types";
 import type { RoomResponseDto } from "./room.types";
 import type { SeatResponseDto } from "./seat.types";
 import type { ShowtimeResponseDto } from "./showtime.types";
@@ -62,7 +62,7 @@ export interface PaginatedReviewsResponse {
 }
 
 export interface PaginatedUsersResponse {
-  users: UserResponseDto[];
+  users: UserPublic[];
   pagination: Pagination;
 }
 

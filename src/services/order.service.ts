@@ -75,6 +75,15 @@ class OrderService {
     );
     return response.data;
   }
+
+  /**
+   * Cancel order (user can cancel their own order)
+   */
+  async cancel(id: number): Promise<ApiSuccess & { orderId?: number; success?: boolean }> {
+    const response: AxiosResponse<ApiSuccess & { orderId?: number; success?: boolean }> =
+      await axiosInstance.post(ENDPOINTS.ORDERS.CANCEL(id));
+    return response.data;
+  }
 }
 
 export default new OrderService();
