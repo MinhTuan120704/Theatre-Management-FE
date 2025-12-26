@@ -58,6 +58,41 @@ export interface OrderResponseDto {
   orderedAt: Date;
 }
 
+// Detailed order returned by user-facing APIs (includes movie/cinema/showtime/seats/products)
+export interface OrderSeatDto {
+  seatId: number;
+  seatNumber: string;
+}
+
+export interface OrderProductDtoResponse {
+  productId: number;
+  productName: string;
+  productPrice: string; // price may come as string from API (e.g. "40000.00")
+  quantity: number;
+}
+
+export interface OrderDetailResponseDto {
+  id: number;
+  userId: number;
+  totalPrice: string; // API may return string price
+  paymentMethod?: PaymentMethod | null;
+  status: OrderStatus;
+  reservationExpiresAt?: string | null;
+  paidAt?: string | null;
+  discountId?: number | null;
+  orderedAt: string;
+  movieId?: number;
+  movieTitle?: string;
+  cinemaId?: number;
+  cinemaName?: string;
+  cinemaAddress?: string;
+  roomId?: number;
+  roomName?: string;
+  showTime?: string;
+  seats?: OrderSeatDto[];
+  products?: OrderProductDtoResponse[];
+}
+
 // Order Product Details Types
 export interface OrderProductDetails {
   orderId: number;

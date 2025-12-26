@@ -25,6 +25,7 @@ export const ENDPOINTS = {
     GET_ALL: "/orders",
     GET_BY_ID: (id: number) => `/orders/${id}`,
     GET_BY_USER_ID: (userId: number) => `/orders/user/${userId}`,
+    CANCEL: (id: number) => `/orders/${id}/cancel`,
     CREATE: "/orders",
     UPDATE: (id: number) => `/orders/${id}`,
     DELETE: (id: number) => `/orders/${id}`,

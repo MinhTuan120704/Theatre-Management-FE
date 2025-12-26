@@ -10,6 +10,7 @@ import BookingHistoryGrid from "./components/BookingHistory/BookingHistoryGrid";
 import { useAuth } from "../../contexts";
 import OrderService from "../../services/order.service";
 import { useNavigate } from "react-router-dom";
+import type { OrderDetailResponseDto } from "../../types/order.types";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -23,19 +24,31 @@ const Profile = () => {
     showtime: string;
     total: number;
     status: string;
+    cinemaName?: string;
+    roomName?: string;
+    seats?: { seatId: number; seatNumber: string }[];
+    products?: { productId: number; productName: string; productPrice: string; quantity: number }[];
+    paymentMethod?: string | null;
+    paidAt?: string | null | undefined;
   };
 
   const fetchTickets = async (): Promise<Ticket[]> => {
     if (!user) return [];
     try {
-      const orders = await OrderService.getByUserId(user.id);
+      const orders = (await OrderService.getByUserId(user.id)) as unknown as OrderDetailResponseDto[];
       return orders.map((o) => ({
         orderId: `#${o.id}`,
         orderIdNumber: o.id,
-        movieTitle: "",
-        showtime: new Date(o.orderedAt).toLocaleString(),
-        total: o.totalPrice,
+        movieTitle: o.movieTitle || "",
+        showtime: o.showTime ? new Date(o.showTime).toLocaleString() : o.orderedAt ? new Date(o.orderedAt).toLocaleString() : "",
+        total: Number(o.totalPrice) || 0,
         status: o.status,
+        cinemaName: o.cinemaName,
+        roomName: o.roomName,
+        seats: o.seats || [],
+        products: o.products || [],
+        paymentMethod: o.paymentMethod,
+        paidAt: o.paidAt ? new Date(o.paidAt).toLocaleString() : undefined,
       }));
     } catch {
       return [];
@@ -50,7 +63,7 @@ const Profile = () => {
     // convert '#id' to number
     const id = Number(orderId.replace(/^#/, ""));
     if (!id) return Promise.reject();
-    await OrderService.update(id, { status: "cancelled" });
+    await OrderService.cancel(id);
     return Promise.resolve();
   };
 

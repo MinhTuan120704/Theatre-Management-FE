@@ -9,6 +9,12 @@ interface Ticket {
   showtime: string;
   total: number;
   status?: string;
+  cinemaName?: string;
+  roomName?: string;
+  seats?: { seatId: number; seatNumber: string }[];
+  products?: { productId: number; productName: string; productPrice: string; quantity: number }[];
+  paymentMethod?: string | null;
+  paidAt?: string | null;
 }
 
 interface BookingHistoryGridProps {
@@ -43,6 +49,12 @@ const BookingHistoryGrid = ({
     };
   }, [fetchTickets]);
 
+  const handleCancel = async (orderId: string) => {
+    // call parent cancel and remove ticket locally on success
+    await onCancel(orderId);
+    setTickets((prev) => prev.filter((t) => t.orderId !== orderId));
+  };
+
   return (
     <div className="bg-brand-purple-2 rounded-lg p-6 mt-6">
       <h2 className="text-xl font-bold text-white mb-4">LỊCH SỬ MUA VÉ</h2>
@@ -64,7 +76,7 @@ const BookingHistoryGrid = ({
           <TicketInfoRow
             key={ticket.orderId}
             {...ticket}
-            onCancel={onCancel}
+            onCancel={handleCancel}
             onPay={onPay}
           />
         ))
